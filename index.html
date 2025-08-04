@@ -1,68 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Planar Triangulated Graph Visualizer</title>
+    <title>Planar Triangulated Graph Visualizer</title>
     <style>
-        :root {
-            --primary: #4361ee;
-            --primary-light: #4895ef;
-            --primary-dark: #3f37c9;
-            --success: #4cc9f0;
-            --warning: #f72585;
-            --dark: #1f1f1f;
-            --light: #f8f9fa;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --border-radius: 8px;
-            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        * {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-main);
-            background-color: #f0f2f5;
-            color: var(--dark);
-            overflow: hidden;
-            height: 100vh;
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            background-color: #f5f5f5;
         }
 
-        .app-header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        .header {
+            background: linear-gradient(to right, #3a6ea5, #6c8ebf);
             color: white;
-            padding: 12px 20px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: var(--shadow);
-            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        .app-title {
-            font-weight: 600;
-            font-size: 1.2rem;
-            letter-spacing: 0.5px;
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
         }
 
-        .controls-container {
-            background: white;
+        .toolbar {
+            background-color: #fff;
             padding: 10px;
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            position: relative;
-            z-index: 5;
+            border-bottom: 1px solid #ddd;
         }
 
-        .control-group {
+        .btn-group {
             display: flex;
             gap: 4px;
             align-items: center;
@@ -71,102 +49,54 @@
             margin-right: 4px;
         }
 
-        .control-group:last-child {
+        .btn-group:last-child {
             border-right: none;
         }
 
-        .btn {
-            background-color: white;
-            border: 1px solid #e0e0e0;
-            color: #333;
-            font-weight: 500;
-            font-size: 0.9rem;
+        button {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             padding: 6px 12px;
-            border-radius: var(--border-radius);
             cursor: pointer;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
+            gap: 5px;
+            color: #333;
+            transition: all 0.2s;
         }
 
-        .btn:hover {
-            background-color: #f5f5f5;
-            border-color: #d0d0d0;
+        button:hover {
+            background-color: #e9ecef;
         }
 
-        .btn:active {
-            transform: translateY(1px);
+        button:active {
+            background-color: #dee2e6;
         }
 
-        .btn:disabled {
-            opacity: 0.6;
+        button:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .btn.primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
+        button.primary {
+            background-color: #3a6ea5;
             color: white;
+            border-color: #2a5e95;
         }
 
-        .btn.primary:hover {
-            background-color: var(--primary-dark);
-        }
-
-        .btn.success {
-            background-color: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-
-        .btn.success:hover {
-            background-color: #3ab7db;
-        }
-
-        .btn.warning {
-            background-color: var(--warning);
-            border-color: var(--warning);
-            color: white;
-        }
-
-        .btn.warning:hover {
-            background-color: #e01e79;
+        button.primary:hover {
+            background-color: #2a5e95;
         }
 
         .btn-icon {
-            font-size: 1.1rem;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .tooltip {
-            position: absolute;
-            bottom: -36px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            z-index: 100;
-        }
-
-        .btn:hover .tooltip {
-            opacity: 1;
+            font-weight: bold;
         }
 
         .main-container {
-            flex: 1;
             display: flex;
-            position: relative;
+            flex: 1;
             overflow: hidden;
         }
 
@@ -174,10 +104,10 @@
             flex: 1;
             position: relative;
             overflow: hidden;
-            background-color: #fcfcfc;
-            background-image: 
-                linear-gradient(rgba(150, 150, 150, 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(150, 150, 150, 0.1) 1px, transparent 1px);
+            background-color: white;
+            background-image:
+                linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
             background-size: 20px 20px;
         }
 
@@ -191,28 +121,26 @@
         }
 
         .side-panel {
-            width: 280px;
-            background: white;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+            width: 300px;
+            background-color: white;
+            border-left: 1px solid #ddd;
             display: flex;
             flex-direction: column;
-            transition: transform 0.3s ease;
-            z-index: 4;
+            transition: transform 0.3s;
         }
 
         .side-panel.collapsed {
-            transform: translateX(280px);
+            transform: translateX(100%);
         }
 
         .panel-header {
-            background: #f8f8f8;
-            padding: 12px 15px;
-            font-weight: 600;
-            color: #333;
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #eee;
         }
 
         .panel-content {
@@ -221,273 +149,118 @@
             flex: 1;
         }
 
-        .info-section {
+        .section {
             margin-bottom: 20px;
         }
 
-        .info-section h3 {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #777;
-            margin-bottom: 8px;
-            padding-bottom: 6px;
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #555;
             border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
         }
 
-        .info-value {
-            background: #f5f7fa;
-            padding: 8px 12px;
-            border-radius: 4px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
         }
 
         .vertex-list {
-            max-height: 200px;
-            overflow-y: auto;
             border: 1px solid #eee;
             border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .vertex-item {
+            padding: 5px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
             display: flex;
             justify-content: space-between;
-            padding: 6px 10px;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 0.85rem;
         }
 
         .vertex-item:last-child {
             border-bottom: none;
         }
 
-        .vertex-id {
-            font-weight: 500;
-        }
-
-        .status-bar {
-            background: white;
-            border-top: 1px solid #eee;
-            padding: 8px 15px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #555;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #4cc9f0;
-        }
-
-        .mouse-controls {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            background: rgba(255,255,255,0.9);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color: #555;
-            box-shadow: var(--shadow);
-            z-index: 3;
-            pointer-events: none;
-            opacity: 0.8;
-        }
-
-        .mouse-controls ul {
-            margin: 5px 0 0 20px;
-            padding: 0;
-        }
-
-        .mouse-controls li {
-            margin-bottom: 3px;
-        }
-
         .toggle-panel-btn {
             position: absolute;
             top: 50%;
-            right: 280px;
+            right: 300px;
             transform: translateY(-50%);
-            background: white;
-            border: 1px solid #eee;
-            border-right: none;
             width: 20px;
             height: 60px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-right: none;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             border-radius: 4px 0 0 4px;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.05);
-            z-index: 5;
-            transition: right 0.3s ease;
+            z-index: 10;
+            transition: right 0.3s;
         }
 
         .toggle-panel-btn.collapsed {
             right: 0;
         }
 
-        /* Dialog styles */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.5);
+        .status-bar {
+            height: 30px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+            padding: 0 15px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s ease;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #555;
         }
 
-        .modal.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-content {
-            background-color: white;
-            border-radius: var(--border-radius);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 400px;
-            max-width: 90%;
-            transform: translateY(20px);
-            transition: transform 0.3s ease;
-            overflow: hidden;
-        }
-
-        .modal.show .modal-content {
-            transform: translateY(0);
-        }
-
-        .modal-header {
-            padding: 15px 20px;
-            background: #f8f8f8;
-            border-bottom: 1px solid #eee;
-        }
-
-        .modal-title {
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .modal-footer {
-            padding: 15px 20px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            border-top: 1px solid #eee;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
             border-radius: 4px;
-            font-size: 0.9rem;
-            transition: border-color 0.2s;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary);
-            outline: none;
-        }
-
-        .color-palette {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            position: relative;
-            border: 2px solid transparent;
-        }
-
-        .color-option:hover {
-            transform: scale(1.1);
-        }
-
-        .color-option.selected {
-            border-color: #333;
-        }
-
-        .color-option.selected::after {
-            content: '✓';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             color: white;
-            text-shadow: 0 0 2px rgba(0,0,0,0.5);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
         }
 
-        /* Theme colors */
-        .color-group {
-            margin-bottom: 15px;
+        .alert.show {
+            transform: translateX(0);
         }
 
-        .color-group-title {
-            font-size: 0.85rem;
-            margin-bottom: 8px;
-            color: #777;
+        .alert-success {
+            background-color: #28a745;
         }
 
-        /* Animations */
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
+        .alert-error {
+            background-color: #dc3545;
         }
 
-        .pulse {
-            animation: pulse 2s infinite;
+        .alert-info {
+            background-color: #17a2b8;
         }
 
-        /* Loading indicator */
         .loading {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(255,255,255,0.8);
+            background-color: rgba(255, 255, 255, 0.7);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 100;
@@ -504,190 +277,368 @@
         .spinner {
             width: 40px;
             height: 40px;
-            border: 4px solid rgba(0,0,0,0.1);
-            border-left-color: var(--primary);
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3a6ea5;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .loading-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #333;
         }
 
-        /* Alert styles */
-        .alert {
+        .mouse-guide {
+            position: absolute;
+            left: 15px;
+            bottom: 15px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .mouse-guide ul {
+            margin: 5px 0 0 20px;
+            padding: 0;
+        }
+
+        .mouse-guide li {
+            margin-bottom: 3px;
+        }
+
+        /* Modal */
+        .modal {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: var(--border-radius);
-            color: white;
-            box-shadow: var(--shadow);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
             z-index: 1000;
-            transform: translateX(120%);
-            transition: transform 0.3s ease;
-            max-width: 300px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
         }
 
-        .alert.show {
-            transform: translateX(0);
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
         }
 
-        .alert-success {
-            background-color: #34d399;
+        .modal-content {
+            background-color: white;
+            border-radius: 4px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
-        .alert-error {
-            background-color: #f87171;
+        .modal-header {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
         }
 
-        .alert-info {
-            background-color: var(--primary-light);
+        .modal-body {
+            padding: 15px;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .side-panel {
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 100%;
-                max-width: 320px;
+        .modal-footer {
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            text-align: right;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3a6ea5;
+        }
+
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #333;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
             }
-            
-            .control-group {
-                padding-right: 6px;
-                margin-right: 2px;
+
+            100% {
+                transform: rotate(360deg);
             }
-            
-            .btn {
-                padding: 6px 8px;
-                font-size: 0.85rem;
-            }
+        }
+
+        /* Debug panel */
+        .debug-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            max-height: 400px;
+            background-color: white;
+            color: #333;
+            padding: 0;
+            font-family: var(--font-main);
+            font-size: 14px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .debug-panel.show {
+            display: block;
+        }
+
+        .debug-header {
+            background-color: #3a6ea5;
+            color: white;
+            padding: 12px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .debug-close {
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .debug-content {
+            padding: 15px;
+            overflow-y: auto;
+            max-height: 340px;
+        }
+
+        .validation-result {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .validation-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .validation-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .validation-list {
+            list-style-type: none;
+            margin: 10px 0;
+            padding: 0;
+        }
+
+        .validation-item {
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #dc3545;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .log-time {
+            color: #3a6ea5;
+            font-weight: bold;
+            margin-right: 5px;
         }
     </style>
 </head>
+
 <body>
-    <div class="app-header">
-        <div class="app-title">Planar Triangulated Graph Visualizer</div>
-        <div id="vertex-count">Vertices: 0</div>
+    <div class="header">
+        <h1>Planar Triangulated Graph Visualizer</h1>
+        <div id="vertex-counter">Vertices: 0</div>
     </div>
 
-    <div class="controls-container">
-        <div class="control-group">
-            <button id="startBtn" class="btn primary">
+    <div class="toolbar">
+        <div class="btn-group">
+            <button id="startBtn" class="primary">
                 <span class="btn-icon">S</span>
                 <span>Start</span>
-                <div class="tooltip">Start basic graph (triangle V1-V2-V3)</div>
             </button>
         </div>
-        
-        <div class="control-group">
-            <button id="randomBtn" class="btn" disabled>
+
+        <div class="btn-group">
+            <button id="addBtn" disabled>
+                <span class="btn-icon">A</span>
+                <span>Add Vertex</span>
+            </button>
+            <button id="randomBtn" disabled>
                 <span class="btn-icon">R</span>
                 <span>Random</span>
-                <div class="tooltip">Add random vertex to graph</div>
-            </button>
-            <button id="addBtn" class="btn" disabled>
-                <span class="btn-icon">A</span>
-                <span>Add</span>
-                <div class="tooltip">Add a new vertex to the periphery</div>
             </button>
         </div>
-        
-        <div class="control-group">
-            <button id="goToBtn" class="btn" disabled>
+
+        <div class="btn-group">
+            <button id="goToBtn" disabled>
                 <span class="btn-icon">G</span>
                 <span>Go To</span>
-                <div class="tooltip">Hide vertices with index over m</div>
             </button>
         </div>
-        
-        <div class="control-group">
-            <button id="zoomInBtn" class="btn" disabled>
+
+        <div class="btn-group">
+            <button id="zoomInBtn" disabled>
                 <span class="btn-icon">Z+</span>
-                <div class="tooltip">Zoom in</div>
             </button>
-            <button id="zoomOutBtn" class="btn" disabled>
+            <button id="zoomOutBtn" disabled>
                 <span class="btn-icon">Z-</span>
-                <div class="tooltip">Zoom out</div>
             </button>
-            <button id="centerBtn" class="btn" disabled>
+            <button id="centerBtn" disabled>
                 <span class="btn-icon">C</span>
-                <div class="tooltip">Center graph in screen</div>
             </button>
         </div>
-        
-        <div class="control-group">
-            <button id="toggleBtn" class="btn" disabled>
+
+        <div class="btn-group">
+            <button id="toggleBtn" disabled>
                 <span class="btn-icon">T</span>
                 <span>Toggle</span>
-                <div class="tooltip">Toggle between color or index</div>
             </button>
-            <button id="redrawBtn" class="btn success" disabled>
+            <button id="redrawBtn" disabled>
                 <span>Redraw</span>
-                <div class="tooltip">Redraw the graph with improved layout</div>
             </button>
-            <button id="colorBtn" class="btn" disabled>
+            <button id="colorBtn" disabled>
                 <span>Colors</span>
-                <div class="tooltip">Customize graph colors</div>
             </button>
+        </div>
+
+        <div class="btn-group">
+            <button id="debugBtn">Debug</button>
         </div>
     </div>
 
     <div class="main-container">
         <div class="canvas-container">
-            <canvas id="graphCanvas"></canvas>
-            <div class="loading" id="loadingIndicator">
+            <canvas id="canvas"></canvas>
+            <div class="loading" id="loading">
                 <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">Processing...</div>
+            </div>
+            <div class="mouse-guide">
+                <strong>Mouse Controls:</strong>
+                <ul>
+                    <li>Left click + drag: Pan view</li>
+                    <li>Right click + drag: Rotate</li>
+                    <li>Mouse wheel: Zoom in/out</li>
+                    <li>Double click: Center on point</li>
+                </ul>
             </div>
         </div>
-        
-        <div class="mouse-controls">
-            <strong>Mouse Controls:</strong>
-            <ul>
-                <li>Left click + drag: Pan view</li>
-                <li>Right click + drag: Rotate graph</li>
-                <li>Mouse wheel: Zoom in/out</li>
-                <li>Double click: Center at point</li>
-            </ul>
-        </div>
-        
+
         <div class="toggle-panel-btn" id="togglePanelBtn">◀</div>
-        
+
         <div class="side-panel" id="sidePanel">
             <div class="panel-header">
-                <div>Graph Information</div>
+                <span>Graph Information</span>
             </div>
             <div class="panel-content">
-                <div class="info-section">
-                    <h3>Statistics</h3>
-                    <div class="info-value">Vertices: <span id="vertexCountDetail">0</span></div>
-                    <div class="info-value">Edges: <span id="edgeCount">0</span></div>
-                    <div class="info-value">Periphery Size: <span id="peripheryCount">0</span></div>
+                <div class="section">
+                    <div class="section-title">Statistics</div>
+                    <div class="stat-item">
+                        <span>Vertices:</span>
+                        <span id="vertexCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Edges:</span>
+                        <span id="edgeCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Periphery Size:</span>
+                        <span id="peripheryCount">0</span>
+                    </div>
                 </div>
-                
-                <div class="info-section">
-                    <h3>Selection</h3>
-                    <div class="info-value" id="selectionInfo">None</div>
+
+                <div class="section">
+                    <div class="section-title">Selection</div>
+                    <div id="selectionInfo">None</div>
                 </div>
-                
-                <div class="info-section">
-                    <h3>Periphery Vertices</h3>
+
+                <div class="section">
+                    <div class="section-title">Periphery Vertices</div>
                     <div class="vertex-list" id="peripheryList">
                         <div class="vertex-item">No vertices yet</div>
                     </div>
                 </div>
-                
-                <div class="info-section">
-                    <h3>Display Settings</h3>
-                    <div class="info-value">
-                        Mode: <span id="displayMode">Index</span>
+
+                <div class="section">
+                    <div class="section-title">Display Settings</div>
+                    <div class="stat-item">
+                        <span>Mode:</span>
+                        <span id="displayMode">Index</span>
                     </div>
-                    <div class="info-value">
-                        Visible up to V<span id="visibleUpTo">∞</span>
+                    <div class="stat-item">
+                        <span>Visible up to:</span>
+                        <span id="visibleUpTo">∞</span>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Actions</div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button id="validateBtn">Validate Graph</button>
+                        <button id="fixPeripheryBtn">Fix Periphery</button>
                     </div>
                 </div>
             </div>
@@ -695,91 +646,94 @@
     </div>
 
     <div class="status-bar">
-        <div class="status-indicator">
-            <div class="status-dot"></div>
-            <div id="statusText">Ready to start. Press 'S' to create initial triangle.</div>
-        </div>
-        <div id="coordsDisplay"></div>
+        <div id="statusText">Ready to start. Press 'S' to create initial triangle.</div>
+        <div id="coordinates"></div>
     </div>
 
-    <!-- Go To Vertex Modal -->
+    <!-- Alert -->
+    <div class="alert" id="alert"></div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-header">
+            <span>Validation Results</span>
+            <span class="debug-close" id="closeDebugBtn">×</span>
+        </div>
+        <div class="debug-content" id="debugContent"></div>
+    </div>
+
+    <!-- Go To Modal -->
     <div class="modal" id="goToModal">
         <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Go To Vertex</div>
-            </div>
+            <div class="modal-header">Go To Vertex</div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label" for="vertexIndexInput">Enter vertex index:</label>
-                    <input type="number" id="vertexIndexInput" class="form-control" min="1" placeholder="Enter a value">
+                    <label class="form-label" for="vertexIndex">Enter vertex index:</label>
+                    <input type="number" id="vertexIndex" class="form-control" min="1">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" id="cancelGoToBtn">Cancel</button>
-                <button class="btn primary" id="confirmGoToBtn">Go</button>
+                <button id="cancelGoToBtn">Cancel</button>
+                <button id="confirmGoToBtn" class="primary">Go</button>
             </div>
         </div>
     </div>
 
-    <!-- Color Settings Modal -->
+    <!-- Color Modal -->
     <div class="modal" id="colorModal">
-        <div class="modal-content">
+        <div class="modal-content color-modal-content">
             <div class="modal-header">
                 <div class="modal-title">Color Settings</div>
             </div>
             <div class="modal-body">
-                <div class="color-group">
-                    <div class="color-group-title">Vertex Border</div>
-                    <div class="color-palette" id="vertexStrokeColors"></div>
-                </div>
-                
-                <div class="color-group">
-                    <div class="color-group-title">Vertex Fill</div>
+                <div class="color-section">
+                    <div class="color-title">Vertex Fill Color</div>
                     <div class="color-palette" id="vertexFillColors"></div>
                 </div>
-                
-                <div class="color-group">
-                    <div class="color-group-title">Edge Color</div>
+
+                <div class="color-section">
+                    <div class="color-title">Vertex Border Color</div>
+                    <div class="color-palette" id="vertexStrokeColors"></div>
+                </div>
+
+                <div class="color-section">
+                    <div class="color-title">Edge Color</div>
                     <div class="color-palette" id="edgeColors"></div>
                 </div>
-                
-                <div class="color-group">
-                    <div class="color-group-title">Periphery Color</div>
+
+                <div class="color-section">
+                    <div class="color-title">Periphery Edge Color</div>
                     <div class="color-palette" id="peripheryColors"></div>
                 </div>
-                
-                <div class="color-group">
-                    <div class="color-group-title">Vertex Color Palette</div>
-                    <div class="color-palette" id="vertexPaletteColors"></div>
+
+                <div class="color-section">
+                    <div class="color-title">Vertex Color Palette</div>
+                    <div class="color-palette" id="colorPalette"></div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" id="resetColorsBtn">Reset to Default</button>
-                <button class="btn primary" id="saveColorsBtn">Save</button>
+                <button id="resetColorsBtn">Reset Colors</button>
+                <button id="saveColorsBtn" class="primary">Apply</button>
             </div>
         </div>
     </div>
 
-    <!-- Alert -->
-    <div class="alert" id="alertBox"></div>
-
     <script>
-        // Constants and configuration
-        const VERTEX_RADIUS_BASE = 15;
+        // Constants
+        const VERTEX_RADIUS = 20;
         const INITIAL_TRIANGLE_SIZE = 200;
         const ZOOM_FACTOR = 1.1;
-        const MIN_ANGLE = Math.PI / 3; // 60 degrees
-        const BEZIER_CURVE_FACTOR = 0.3; // Controls curve intensity for edges
         const MAX_VERTICES = 10000;
-        
-        // Canvas and context
-        const canvas = document.getElementById('graphCanvas');
+        const DEBUG = true;
+
+        // DOM Elements
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        
-        // UI elements
+
+        // Buttons
         const startBtn = document.getElementById('startBtn');
-        const randomBtn = document.getElementById('randomBtn');
         const addBtn = document.getElementById('addBtn');
+        const randomBtn = document.getElementById('randomBtn');
         const goToBtn = document.getElementById('goToBtn');
         const zoomInBtn = document.getElementById('zoomInBtn');
         const zoomOutBtn = document.getElementById('zoomOutBtn');
@@ -787,846 +741,1122 @@
         const toggleBtn = document.getElementById('toggleBtn');
         const redrawBtn = document.getElementById('redrawBtn');
         const colorBtn = document.getElementById('colorBtn');
+        const debugBtn = document.getElementById('debugBtn');
+        const validateBtn = document.getElementById('validateBtn');
+        const fixPeripheryBtn = document.getElementById('fixPeripheryBtn');
+
+        // UI Elements
+        const togglePanelBtn = document.getElementById('togglePanelBtn');
+        const sidePanel = document.getElementById('sidePanel');
         const statusText = document.getElementById('statusText');
-        const vertexCount = document.getElementById('vertex-count');
-        const vertexCountDetail = document.getElementById('vertexCountDetail');
+        const coordinates = document.getElementById('coordinates');
+        const vertexCounter = document.getElementById('vertex-counter');
+        const vertexCount = document.getElementById('vertexCount');
         const edgeCount = document.getElementById('edgeCount');
         const peripheryCount = document.getElementById('peripheryCount');
         const peripheryList = document.getElementById('peripheryList');
         const selectionInfo = document.getElementById('selectionInfo');
         const displayMode = document.getElementById('displayMode');
         const visibleUpTo = document.getElementById('visibleUpTo');
-        const coordsDisplay = document.getElementById('coordsDisplay');
-        const togglePanelBtn = document.getElementById('togglePanelBtn');
-        const sidePanel = document.getElementById('sidePanel');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        
-        // Modal elements
+        const loading = document.getElementById('loading');
+        const loadingText = document.getElementById('loadingText');
+        const alert = document.getElementById('alert');
+        const debugPanel = document.getElementById('debugPanel');
+
+        // Modal Elements
         const goToModal = document.getElementById('goToModal');
-        const vertexIndexInput = document.getElementById('vertexIndexInput');
+        const vertexIndex = document.getElementById('vertexIndex');
         const confirmGoToBtn = document.getElementById('confirmGoToBtn');
         const cancelGoToBtn = document.getElementById('cancelGoToBtn');
-        
+
         const colorModal = document.getElementById('colorModal');
         const vertexStrokeColors = document.getElementById('vertexStrokeColors');
         const vertexFillColors = document.getElementById('vertexFillColors');
         const edgeColors = document.getElementById('edgeColors');
         const peripheryColors = document.getElementById('peripheryColors');
-        const vertexPaletteColors = document.getElementById('vertexPaletteColors');
+        const colorPalette = document.getElementById('colorPalette');
         const resetColorsBtn = document.getElementById('resetColorsBtn');
         const saveColorsBtn = document.getElementById('saveColorsBtn');
-        
-        const alertBox = document.getElementById('alertBox');
-        
-        // Graph state
+
+        // Graph data
         let graph = {
             vertices: [],
             edges: [],
             periphery: []
         };
-        
+
         // View state
-        let viewState = {
+        let view = {
             offsetX: 0,
             offsetY: 0,
             scale: 1,
-            rotation: 0, // In radians
+            rotation: 0,
             isDragging: false,
             isRotating: false,
             dragStartX: 0,
             dragStartY: 0,
             showIndex: true,
-            maxVertexVisible: Number.MAX_SAFE_INTEGER
+            maxVisibleVertex: Number.MAX_SAFE_INTEGER
         };
-        
-        // Color state with modern color palette
-        let colorState = {
-            vertexStroke: '#4361ee',
-            vertexFill: '#4cc9f0',
+
+        // Color settings
+        let colors = {
+            vertexStroke: '#3a6ea5',
+            vertexFill: '#b8cfe5',
             edgeColor: '#555555',
-            peripheryColor: '#f72585',
-            selectedColor: '#ff9e00',
-            textColor: '#000000',
-            colors: ['#4cc9f0', '#f72585', '#7209b7', '#4361ee', '#3a0ca3', '#ff9e00', '#ff5400']
+            peripheryColor: '#e63946',
+            selectedColor: '#f9c74f',
+            textColor: '#333333',
+            palette: ['#b8cfe5', '#ffadad', '#ffd6a5', '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff', '#ffc6ff']
         };
-        
-        // Default color state for reset
-        const defaultColorState = JSON.parse(JSON.stringify(colorState));
-        
+
+        // Default colors for reset
+        const defaultColors = JSON.parse(JSON.stringify(colors));
+
         // Selection state
-        let selectionState = {
-            mode: 'none', // 'none', 'addVertex', 'goTo'
-            selectedVertices: [],
+        let selection = {
+            mode: 'none', // 'none', 'add'
+            vertices: [],
             firstVertex: null,
             secondVertex: null
         };
-        
-        // Initialize the canvas size
-        function resizeCanvas() {
-            const container = canvas.parentElement;
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
-            draw();
+
+        // Initialize the application
+        function init() {
+            resizeCanvas();
+            setupEventListeners();
+            setupColorPalettes();
+
+            // Update visibility text
+            updateVisibilityText();
+
+            log('Application initialized');
         }
-        
-        // Initialize event listeners
+
+        // Update visibility text based on current max vertex
+        function updateVisibilityText() {
+            if (view.maxVisibleVertex === Number.MAX_SAFE_INTEGER) {
+                visibleUpTo.textContent = graph.vertices.length > 0 ? graph.vertices.length : "All";
+            } else {
+                visibleUpTo.textContent = view.maxVisibleVertex;
+            }
+        }
+
+        // Set up all event listeners
         function setupEventListeners() {
             // Button event listeners
             startBtn.addEventListener('click', startGraph);
-            randomBtn.addEventListener('click', addRandomVertex);
             addBtn.addEventListener('click', startAddVertex);
-            goToBtn.addEventListener('click', showGoToDialog);
+            randomBtn.addEventListener('click', addRandomVertex);
+            goToBtn.addEventListener('click', () => showModal(goToModal));
             zoomInBtn.addEventListener('click', () => zoom(ZOOM_FACTOR));
             zoomOutBtn.addEventListener('click', () => zoom(1 / ZOOM_FACTOR));
             centerBtn.addEventListener('click', centerGraph);
             toggleBtn.addEventListener('click', toggleDisplay);
             redrawBtn.addEventListener('click', redrawGraph);
-            colorBtn.addEventListener('click', showColorDialog);
-            
+            colorBtn.addEventListener('click', () => showModal(colorModal));
+            debugBtn.addEventListener('click', toggleDebugPanel);
+            validateBtn.addEventListener('click', validateGraph);
+            fixPeripheryBtn.addEventListener('click', fixPeriphery);
+
+            // Debug panel close button
+            document.getElementById('closeDebugBtn').addEventListener('click', () => {
+                document.getElementById('debugPanel').classList.remove('show');
+            });
+
             // Canvas event listeners
             canvas.addEventListener('mousedown', handleMouseDown);
             canvas.addEventListener('mousemove', handleMouseMove);
             canvas.addEventListener('mouseup', handleMouseUp);
             canvas.addEventListener('wheel', handleWheel);
             canvas.addEventListener('dblclick', handleDoubleClick);
-            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-            
-            // Side panel toggle
-            togglePanelBtn.addEventListener('click', toggleSidePanel);
-            
-            // Go To modal
-            confirmGoToBtn.addEventListener('click', handleGoToConfirm);
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Panel toggle
+            togglePanelBtn.addEventListener('click', togglePanel);
+
+            // Modal events
+            confirmGoToBtn.addEventListener('click', handleGoTo);
             cancelGoToBtn.addEventListener('click', () => hideModal(goToModal));
-            
-            // Color modal
-            saveColorsBtn.addEventListener('click', saveColorSettings);
-            resetColorsBtn.addEventListener('click', resetColorSettings);
-            
-            // Window resize event
+
+            saveColorsBtn.addEventListener('click', saveColors);
+            resetColorsBtn.addEventListener('click', resetColors);
+
+            // Color menu
+            document.querySelectorAll('.color-menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove active class from all items
+                    document.querySelectorAll('.color-menu-item').forEach(i => {
+                        i.classList.remove('active');
+                    });
+
+                    // Add active class to clicked item
+                    item.classList.add('active');
+
+                    // Hide all sections
+                    document.getElementById('vertexColorsSection').style.display = 'none';
+                    document.getElementById('edgeColorsSection').style.display = 'none';
+                    document.getElementById('colorPaletteSection').style.display = 'none';
+
+                    // Show selected section
+                    const sectionId = item.getAttribute('data-section');
+                    document.getElementById(sectionId + 'Section').style.display = 'block';
+                });
+            });
+
+            // Close modals when clicking outside
+            goToModal.addEventListener('click', e => {
+                if (e.target === goToModal) hideModal(goToModal);
+            });
+
+            colorModal.addEventListener('click', e => {
+                if (e.target === colorModal) hideModal(colorModal);
+            });
+
+            // Close debug panel on escape key
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape' && document.getElementById('debugPanel').classList.contains('show')) {
+                    document.getElementById('debugPanel').classList.remove('show');
+                    e.preventDefault();
+                }
+            });
+
+            // Window events
             window.addEventListener('resize', resizeCanvas);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyDown);
         }
-        
-        // Toggle side panel
-        function toggleSidePanel() {
+
+        // Handle keyboard shortcuts
+        function handleKeyDown(e) {
+            // Ignore shortcuts when typing in input fields
+            if (document.activeElement.tagName === 'INPUT') return;
+
+            // Handle keyboard shortcuts
+            switch (e.key.toLowerCase()) {
+                case 's':
+                    if (!startBtn.disabled) startGraph();
+                    break;
+                case 'a':
+                    if (!addBtn.disabled) startAddVertex();
+                    break;
+                case 'r':
+                    if (!randomBtn.disabled) addRandomVertex();
+                    break;
+                case 'g':
+                    if (!goToBtn.disabled) showModal(goToModal);
+                    break;
+                case 'c':
+                    if (!centerBtn.disabled) centerGraph();
+                    break;
+                case 't':
+                    if (!toggleBtn.disabled) toggleDisplay();
+                    break;
+                case '+':
+                case '=':
+                    if (!zoomInBtn.disabled) zoom(ZOOM_FACTOR);
+                    break;
+                case '-':
+                    if (!zoomOutBtn.disabled) zoom(1 / ZOOM_FACTOR);
+                    break;
+                case 'd':
+                    toggleDebugPanel();
+                    break;
+                case 'escape':
+                    // Close any open modal or debug panel
+                    if (document.getElementById('debugPanel').classList.contains('show')) {
+                        document.getElementById('debugPanel').classList.remove('show');
+                    } else if (colorModal.classList.contains('show')) {
+                        hideModal(colorModal);
+                    } else if (goToModal.classList.contains('show')) {
+                        hideModal(goToModal);
+                    } else if (selection.mode !== 'none') {
+                        // Cancel vertex selection
+                        selection.mode = 'none';
+                        selection.vertices = [];
+                        selection.firstVertex = null;
+                        selection.secondVertex = null;
+                        updateStatus('Selection canceled');
+                        updateSelectionInfo();
+                        draw();
+                    }
+                    break;
+            }
+        }
+
+        // Resize canvas to fit container
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+
+        // Toggle side panel visibility
+        function togglePanel() {
             sidePanel.classList.toggle('collapsed');
             togglePanelBtn.classList.toggle('collapsed');
             togglePanelBtn.textContent = sidePanel.classList.contains('collapsed') ? '▶' : '◀';
         }
-        
-        // Show modal
+
+        // Toggle debug panel visibility
+        function toggleDebugPanel() {
+            const debugPanel = document.getElementById('debugPanel');
+            debugPanel.classList.toggle('show');
+        }
+
+        // Show a modal dialog
         function showModal(modal) {
             modal.classList.add('show');
+
             if (modal === goToModal) {
-                vertexIndexInput.focus();
+                vertexIndex.max = graph.vertices.length;
+                vertexIndex.placeholder = `1-${graph.vertices.length}`;
+                vertexIndex.focus();
             }
         }
-        
-        // Hide modal
+
+        // Hide a modal dialog
         function hideModal(modal) {
             modal.classList.remove('show');
         }
-        
-        // Show Go To dialog
-        function showGoToDialog() {
-            vertexIndexInput.setAttribute('max', graph.vertices.length);
-            vertexIndexInput.setAttribute('placeholder', `Enter a value (1-${graph.vertices.length})`);
-            showModal(goToModal);
-        }
-        
-        // Handle Go To confirmation
-        function handleGoToConfirm() {
-            const vertexIndex = parseInt(vertexIndexInput.value);
-            if (isNaN(vertexIndex) || vertexIndex < 1 || vertexIndex > graph.vertices.length) {
-                showAlert('Please enter a valid vertex index.', 'error');
-                return;
-            }
-            
-            viewState.maxVertexVisible = vertexIndex;
-            visibleUpTo.textContent = vertexIndex;
-            updateStatus(`Showing vertices up to index ${vertexIndex}`);
-            hideModal(goToModal);
-            draw();
-        }
-        
-        // Show Color dialog
-        function showColorDialog() {
-            // Populate color palettes
-            populateColorPalette(vertexStrokeColors, 'vertexStroke');
-            populateColorPalette(vertexFillColors, 'vertexFill');
-            populateColorPalette(edgeColors, 'edgeColor');
-            populateColorPalette(peripheryColors, 'peripheryColor');
-            
-            // Vertex color palette
-            vertexPaletteColors.innerHTML = '';
-            for (let i = 0; i < colorState.colors.length; i++) {
-                addColorOption(vertexPaletteColors, `color-${i}`, colorState.colors[i], (color) => {
-                    colorState.colors[i] = color;
-                });
-            }
-            
-            showModal(colorModal);
-        }
-        
-        // Populate color palette
-        function populateColorPalette(container, propertyName) {
-            container.innerHTML = '';
-            
-            // Predefined colors
-            const colors = [
-                '#4361ee', '#4895ef', '#4cc9f0', '#f72585', '#7209b7', 
-                '#3a0ca3', '#4361ee', '#ff9e00', '#ff5400', '#009688',
-                '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4',
-                '#4caf50', '#8bc34a', '#cddc39', '#ffc107', '#ff9800',
-                '#ff5722', '#795548', '#9e9e9e', '#607d8b', '#000000'
-            ];
-            
-            colors.forEach(color => {
-                addColorOption(container, propertyName, color, (newColor) => {
-                    colorState[propertyName] = newColor;
-                });
-            });
-            
-            // Find and mark the currently selected color
-            const currentColor = colorState[propertyName];
-            const options = container.querySelectorAll('.color-option');
-            for (const option of options) {
-                if (option.style.backgroundColor === currentColor) {
-                    option.classList.add('selected');
-                    break;
-                }
+
+        // Show loading indicator
+        function showLoading(show, message = 'Processing...') {
+            loadingText.textContent = message;
+
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
             }
         }
-        
-        // Add a color option to a palette
-        function addColorOption(container, key, color, onChange) {
-            const option = document.createElement('div');
-            option.className = 'color-option';
-            option.style.backgroundColor = color;
-            
-            if (colorState[key] === color) {
-                option.classList.add('selected');
-            }
-            
-            option.addEventListener('click', () => {
-                const siblings = container.querySelectorAll('.color-option');
-                siblings.forEach(s => s.classList.remove('selected'));
-                option.classList.add('selected');
-                onChange(color);
-            });
-            
-            container.appendChild(option);
-        }
-        
-        // Save color settings
-        function saveColorSettings() {
-            hideModal(colorModal);
-            draw();
-            showAlert('Color settings saved successfully!', 'success');
-        }
-        
-        // Reset color settings
-        function resetColorSettings() {
-            colorState = JSON.parse(JSON.stringify(defaultColorState));
-            showColorDialog(); // Refresh the dialog
-            showAlert('Colors reset to default', 'info');
-        }
-        
-        // Show alert
+
+        // Show alert message
         function showAlert(message, type = 'info') {
-            alertBox.textContent = message;
-            alertBox.className = `alert alert-${type}`;
-            alertBox.classList.add('show');
-            
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.classList.add('show');
+
             setTimeout(() => {
-                alertBox.classList.remove('show');
+                alert.classList.remove('show');
             }, 3000);
         }
-        
-        // Start the initial triangle graph
+
+        // Log debug message
+        function log(message, data = null) {
+            if (!DEBUG) return;
+
+            console.log(message, data || '');
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+
+            const time = document.createElement('span');
+            time.className = 'log-time';
+            time.textContent = new Date().toLocaleTimeString();
+
+            entry.appendChild(time);
+            entry.appendChild(document.createTextNode(' ' + message));
+
+            if (data) {
+                entry.appendChild(document.createTextNode(' '));
+                entry.appendChild(document.createTextNode(JSON.stringify(data)));
+            }
+
+            const debugContent = document.getElementById('debugContent');
+            debugContent.appendChild(entry);
+            debugContent.scrollTop = debugContent.scrollHeight;
+
+            // Limit entries
+            while (debugContent.children.length > 100) {
+                debugContent.removeChild(debugContent.firstChild);
+            }
+        }
+
+        // Clear debug log
+        function clearLog() {
+            document.getElementById('debugContent').innerHTML = '';
+        }
+
+        // Update status message
+        function updateStatus(message) {
+            statusText.textContent = message;
+        }
+
+        // Start the graph with an initial triangle
         function startGraph() {
+            // Reset graph data
             graph = {
                 vertices: [],
                 edges: [],
                 periphery: []
             };
-            
+
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            
+
             // Create three vertices for the initial triangle
             const v1 = addVertex(centerX, centerY - INITIAL_TRIANGLE_SIZE / Math.sqrt(3));
             const v2 = addVertex(centerX - INITIAL_TRIANGLE_SIZE / 2, centerY + INITIAL_TRIANGLE_SIZE / (2 * Math.sqrt(3)));
             const v3 = addVertex(centerX + INITIAL_TRIANGLE_SIZE / 2, centerY + INITIAL_TRIANGLE_SIZE / (2 * Math.sqrt(3)));
-            
+
             // Add edges between the vertices
             addEdge(0, 1);
             addEdge(1, 2);
             addEdge(2, 0);
-            
-            // Initialize periphery
+
+            // Set the periphery (in clockwise order)
             graph.periphery = [0, 1, 2];
-            
+
+            log('Initial triangle created', { vertices: graph.vertices, periphery: graph.periphery });
+
             // Update UI
             updateStatus('Initial triangle created. You can now add vertices.');
             updateGraphInfo();
             enableButtons();
             centerGraph();
-            showAlert('Graph initialized successfully!', 'success');
+            showAlert('Graph initialized', 'success');
         }
-        
+
         // Add a vertex to the graph
         function addVertex(x, y) {
-            if (graph.vertices.length >= MAX_VERTICES) {
-                showAlert(`Maximum vertex limit (${MAX_VERTICES}) reached.`, 'error');
-                return null;
-            }
-            
             const vertex = {
                 id: graph.vertices.length,
                 x: x,
                 y: y,
-                color: 0
+                color: graph.vertices.length % colors.palette.length
             };
-            
+
             graph.vertices.push(vertex);
+            log(`Vertex added: V${vertex.id + 1}`, vertex);
             return vertex;
         }
-        
+
         // Add an edge between two vertices
-        function addEdge(vertexId1, vertexId2) {
+        function addEdge(v1, v2) {
             // Check if edge already exists
-            const edgeExists = graph.edges.some(edge => 
-                (edge.v1 === vertexId1 && edge.v2 === vertexId2) || 
-                (edge.v1 === vertexId2 && edge.v2 === vertexId1)
+            const edgeExists = graph.edges.some(edge =>
+                (edge.v1 === v1 && edge.v2 === v2) ||
+                (edge.v1 === v2 && edge.v2 === v1)
             );
-            
+
             if (!edgeExists) {
-                graph.edges.push({
-                    v1: vertexId1,
-                    v2: vertexId2,
-                    // Add control points for curved edges
-                    controlPoint: null // Will be calculated during drawing
-                });
+                const edge = { v1, v2 };
+                graph.edges.push(edge);
+                log(`Edge added: V${v1 + 1}-V${v2 + 1}`);
+                return edge;
             }
+
+            return null;
         }
-        
+
+        // Start the process of adding a vertex
+        function startAddVertex() {
+            selection.mode = 'add';
+            selection.vertices = [];
+            selection.firstVertex = null;
+            selection.secondVertex = null;
+
+            updateStatus('Select the first vertex (Vp) on the periphery');
+            updateSelectionInfo();
+            showAlert('Select two vertices on the periphery', 'info');
+
+            log('Started vertex addition mode');
+        }
+
         // Add a random vertex to the graph
         function addRandomVertex() {
             if (graph.periphery.length < 2) {
-                showAlert('Not enough vertices in the periphery.', 'error');
+                showAlert('Not enough vertices in the periphery', 'error');
                 return;
             }
-            
-            showLoading(true);
-            
-            // Use setTimeout to give the UI a chance to update
+
+            showLoading(true, 'Adding random vertex...');
+
+            // Use setTimeout to allow UI to update
             setTimeout(() => {
-                // Randomly select two vertices in the periphery
-                let index1 = Math.floor(Math.random() * graph.periphery.length);
-                let index2;
-                do {
-                    index2 = Math.floor(Math.random() * graph.periphery.length);
-                } while (index1 === index2);
-                
-                // Ensure clockwise order
-                if ((index1 + 1) % graph.periphery.length !== index2 && 
-                    (index2 + 1) % graph.periphery.length !== index1) {
-                    if (index1 > index2) {
-                        [index1, index2] = [index2, index1];
-                    }
-                } else if ((index2 + 1) % graph.periphery.length === index1) {
-                    [index1, index2] = [index2, index1];
+                try {
+                    // Randomly select two distinct vertices from the periphery
+                    const peripheryLength = graph.periphery.length;
+                    let idx1 = Math.floor(Math.random() * peripheryLength);
+                    let idx2;
+
+                    do {
+                        idx2 = Math.floor(Math.random() * peripheryLength);
+                    } while (idx1 === idx2);
+
+                    // Get vertex IDs
+                    const vp = graph.periphery[idx1];
+                    const vq = graph.periphery[idx2];
+
+                    log('Selected random vertices', { vp, vq });
+
+                    // Add the vertex
+                    addNewVertex(vp, vq);
+                } catch (error) {
+                    log('Error adding random vertex', error);
+                    showAlert('Error adding vertex: ' + error.message, 'error');
+                } finally {
+                    showLoading(false);
                 }
-                
-                const vp = graph.periphery[index1];
-                const vq = graph.periphery[index2];
-                
-                // Call function to add vertex between these points
-                addNewVertexToPeriphery(vp, vq);
-                showLoading(false);
             }, 10);
         }
-        
-        // Show/hide loading indicator
-        function showLoading(show) {
-            if (show) {
-                loadingIndicator.classList.add('show');
-            } else {
-                loadingIndicator.classList.remove('show');
-            }
-        }
-        
-        // Start the process of adding a vertex manually
-        function startAddVertex() {
-            selectionState.mode = 'addVertex';
-            selectionState.selectedVertices = [];
-            selectionState.firstVertex = null;
-            selectionState.secondVertex = null;
-            updateStatus('Select the first vertex (Vp) on the periphery.');
-            showAlert('Select two vertices on the periphery to add a new vertex.', 'info');
-        }
-        
-        // Add a new vertex to the periphery between two selected points
-        function addNewVertexToPeriphery(vpId, vqId) {
-            showLoading(true);
-            
-            // Get the indices of the vertices in the periphery array
-            const vpPeripheryIndex = graph.periphery.indexOf(vpId);
-            const vqPeripheryIndex = graph.periphery.indexOf(vqId);
-            
-            if (vpPeripheryIndex === -1 || vqPeripheryIndex === -1) {
-                updateStatus('Selected vertices must be on the periphery.');
-                showAlert('Selected vertices must be on the periphery.', 'error');
-                showLoading(false);
-                return;
-            }
-            
-            // Get the vertices between vp and vq in clockwise order
-            let verticesInBetween = [];
-            if (vpPeripheryIndex < vqPeripheryIndex) {
-                verticesInBetween = graph.periphery.slice(vpPeripheryIndex, vqPeripheryIndex + 1);
-            } else {
-                verticesInBetween = [
-                    ...graph.periphery.slice(vpPeripheryIndex),
-                    ...graph.periphery.slice(0, vqPeripheryIndex + 1)
-                ];
-            }
-            
-            if (verticesInBetween.length < 2) {
-                updateStatus('Need at least two vertices to add a new vertex.');
-                showAlert('Need at least two vertices to add a new vertex.', 'error');
-                showLoading(false);
-                return;
-            }
-            
-            // Calculate the position for the new vertex
-            // Find the middle vertex in the range
-            const middleVertexId = verticesInBetween[Math.floor(verticesInBetween.length / 2)];
-            const middleVertex = graph.vertices[middleVertexId];
-            
-            // Calculate average of outer points with offset from middle
-            const centerX = verticesInBetween.reduce((sum, id) => sum + graph.vertices[id].x, 0) / verticesInBetween.length;
-            const centerY = verticesInBetween.reduce((sum, id) => sum + graph.vertices[id].y, 0) / verticesInBetween.length;
-            
-            // Calculate vector from center to middle point
-            const dirX = middleVertex.x - centerX;
-            const dirY = middleVertex.y - centerY;
-            
-            // Normalize the direction vector
-            const length = Math.sqrt(dirX * dirX + dirY * dirY);
-            const normDirX = dirX / length;
-            const normDirY = dirY / length;
-            
-            // Position the new vertex outside the current periphery
-            // The distance is proportional to the average distance between vertices
-            let totalDistance = 0;
-            for (let i = 0; i < verticesInBetween.length - 1; i++) {
-                const v1 = graph.vertices[verticesInBetween[i]];
-                const v2 = graph.vertices[verticesInBetween[i + 1]];
-                totalDistance += Math.sqrt(
-                    (v2.x - v1.x) * (v2.x - v1.x) + 
-                    (v2.y - v1.y) * (v2.y - v1.y)
+
+        // Add a new vertex between two periphery vertices
+        function addNewVertex(vpId, vqId) {
+            try {
+                log('Adding vertex between', { vpId, vqId });
+
+                // Check if vertices are on periphery
+                if (!graph.periphery.includes(vpId) || !graph.periphery.includes(vqId)) {
+                    throw new Error('Selected vertices must be on the periphery');
+                }
+
+                // Get vertices between vp and vq (inclusive) in CLOCKWISE order
+                const verticesInBetween = getVerticesBetween(vpId, vqId);
+
+                log('Vertices in between', verticesInBetween);
+
+                if (verticesInBetween.length < 2) {
+                    throw new Error('Need at least two vertices to add a new vertex');
+                }
+
+                // Calculate the average position of the selected vertices
+                let centerX = 0, centerY = 0;
+                for (const id of verticesInBetween) {
+                    centerX += graph.vertices[id].x;
+                    centerY += graph.vertices[id].y;
+                }
+                centerX /= verticesInBetween.length;
+                centerY /= verticesInBetween.length;
+
+                // Find the middle vertex for direction calculation
+                const middleIdx = Math.floor(verticesInBetween.length / 2);
+                const middleVertex = graph.vertices[verticesInBetween[middleIdx]];
+
+                // Calculate direction vector from center to middle vertex
+                let dirX = middleVertex.x - centerX;
+                let dirY = middleVertex.y - centerY;
+
+                // Normalize the direction vector
+                const length = Math.sqrt(dirX * dirX + dirY * dirY);
+                if (length > 0) {
+                    dirX /= length;
+                    dirY /= length;
+                } else {
+                    // Default direction if vector is zero length
+                    dirX = 0;
+                    dirY = -1;
+                }
+
+                // Calculate average distance between vertices
+                let totalDistance = 0;
+                for (let i = 0; i < verticesInBetween.length - 1; i++) {
+                    const v1 = graph.vertices[verticesInBetween[i]];
+                    const v2 = graph.vertices[verticesInBetween[i + 1]];
+                    const dx = v2.x - v1.x;
+                    const dy = v2.y - v1.y;
+                    totalDistance += Math.sqrt(dx * dx + dy * dy);
+                }
+
+                // Use a minimum distance if too small
+                const avgDistance = Math.max(
+                    totalDistance / (verticesInBetween.length - 1) * 1.3,
+                    VERTEX_RADIUS * 3
                 );
+
+                log('New vertex positioning', { centerX, centerY, dirX, dirY, avgDistance });
+
+                // Calculate the new vertex position OUTSIDE the current shape
+                const newX = centerX - dirX * avgDistance;
+                const newY = centerY - dirY * avgDistance;
+
+                // Add the new vertex
+                const newVertex = addVertex(newX, newY);
+
+                // Add edges from the new vertex to all vertices in between
+                for (const id of verticesInBetween) {
+                    addEdge(newVertex.id, id);
+                }
+
+                // Update the periphery - crucial part
+                updatePeriphery(verticesInBetween, newVertex.id);
+
+                // Update UI
+                updateGraphInfo();
+                updateStatus(`Vertex ${newVertex.id + 1} added`);
+
+                // Reset selection
+                selection.mode = 'none';
+                selection.vertices = [];
+                selection.firstVertex = null;
+                selection.secondVertex = null;
+
+                // Draw the updated graph
+                draw();
+
+                log('New vertex added successfully', {
+                    id: newVertex.id,
+                    periphery: [...graph.periphery]
+                });
+
+                showAlert(`Vertex ${newVertex.id + 1} added`, 'success');
+
+                return newVertex;
+            } catch (error) {
+                log('Error adding vertex', error);
+                showAlert('Error: ' + error.message, 'error');
+                throw error;
             }
-            const avgDistance = totalDistance / (verticesInBetween.length - 1) * 1.3;
-            
-            // Create the new vertex
-            const newX = centerX - normDirX * avgDistance;
-            const newY = centerY - normDirY * avgDistance;
-            const newVertex = addVertex(newX, newY);
-            
-            if (!newVertex) {
-                showLoading(false);
-                return; // Maximum vertex limit reached
+        }
+
+        // Get vertices between two periphery points in clockwise order
+        function getVerticesBetween(vpId, vqId) {
+            const periphery = graph.periphery;
+            const vpIdx = periphery.indexOf(vpId);
+            const vqIdx = periphery.indexOf(vqId);
+
+            if (vpIdx === -1 || vqIdx === -1) {
+                throw new Error('Vertices not found in periphery');
             }
-            
-            // Assign a different color to the new vertex
-            newVertex.color = newVertex.id % colorState.colors.length;
-            
-            // Add edges between the new vertex and all vertices in the range
-            for (const vertexId of verticesInBetween) {
-                addEdge(newVertex.id, vertexId);
+
+            let result = [];
+
+            // Get vertices in clockwise order
+            if (vpIdx <= vqIdx) {
+                // No wrap-around
+                result = periphery.slice(vpIdx, vqIdx + 1);
+            } else {
+                // Wrap-around
+                result = [...periphery.slice(vpIdx), ...periphery.slice(0, vqIdx + 1)];
             }
-            
-            // Update the periphery
-            // Replace the vertices between vp and vq with the new vertex
+
+            return result;
+        }
+
+        // Update periphery after adding a new vertex
+        function updatePeriphery(removedVertices, newVertexId) {
+            // Get the first and last vertices in the removed section
+            const firstId = removedVertices[0];
+            const lastId = removedVertices[removedVertices.length - 1];
+
+            // Create a new periphery array
             let newPeriphery = [];
-            
-            if (vpPeripheryIndex < vqPeripheryIndex) {
+
+            // Find indices in the current periphery
+            const firstIdx = graph.periphery.indexOf(firstId);
+            const lastIdx = graph.periphery.indexOf(lastId);
+
+            if (firstIdx === -1 || lastIdx === -1) {
+                throw new Error('Periphery vertices not found');
+            }
+
+            log('Updating periphery', {
+                firstId, lastId,
+                firstIdx, lastIdx,
+                oldPeriphery: [...graph.periphery]
+            });
+
+            if (firstIdx < lastIdx) {
+                // No wrap-around
                 newPeriphery = [
-                    ...graph.periphery.slice(0, vpPeripheryIndex),
-                    newVertex.id,
-                    ...graph.periphery.slice(vqPeripheryIndex + 1)
+                    ...graph.periphery.slice(0, firstIdx),
+                    newVertexId,
+                    ...graph.periphery.slice(lastIdx + 1)
                 ];
             } else {
+                // Wrap-around case
                 newPeriphery = [
-                    ...graph.periphery.slice(vqPeripheryIndex + 1, vpPeripheryIndex),
-                    newVertex.id
+                    ...graph.periphery.slice(lastIdx + 1, firstIdx),
+                    newVertexId
                 ];
             }
-            
+
+            // Handle special case where periphery becomes empty
+            if (newPeriphery.length === 0) {
+                newPeriphery = [newVertexId];
+            }
+
+            // Update the graph's periphery
             graph.periphery = newPeriphery;
-            
-            // Update UI
-            updateStatus(`New vertex added: V${newVertex.id + 1}`);
-            updateGraphInfo();
-            draw();
-            
-            // Reset selection state
-            selectionState.mode = 'none';
-            selectionState.selectedVertices = [];
-            selectionState.firstVertex = null;
-            selectionState.secondVertex = null;
-            
-            // Calculate control points for curved edges
-            calculateEdgeControlPoints();
-            
-            // Redraw the graph to ensure proper layout
-            setTimeout(() => {
-                redrawGraph();
-                showLoading(false);
-                showAlert(`Vertex V${newVertex.id + 1} added successfully!`, 'success');
-            }, 50);
+
+            log('New periphery', graph.periphery);
+            return newPeriphery;
         }
-        
-        // Calculate control points for curved edges
-        function calculateEdgeControlPoints() {
-            for (const edge of graph.edges) {
-                const v1 = graph.vertices[edge.v1];
-                const v2 = graph.vertices[edge.v2];
-                
-                // For edges that are not part of the periphery, add a curve
-                const isPeripheryEdge = 
-                    graph.periphery.includes(edge.v1) && 
-                    graph.periphery.includes(edge.v2) &&
-                    (
-                        graph.periphery[(graph.periphery.indexOf(edge.v1) + 1) % graph.periphery.length] === edge.v2 ||
-                        graph.periphery[(graph.periphery.indexOf(edge.v2) + 1) % graph.periphery.length] === edge.v1
-                    );
-                
-                if (!isPeripheryEdge) {
-                    // Find the center of the graph
-                    let centerX = 0;
-                    let centerY = 0;
-                    
+
+        // Handle "Go To" vertex action
+        function handleGoTo() {
+            const index = parseInt(vertexIndex.value);
+
+            if (isNaN(index) || index < 1 || index > graph.vertices.length) {
+                showAlert('Please enter a valid vertex index', 'error');
+                return;
+            }
+
+            view.maxVisibleVertex = index;
+            updateVisibilityText();
+            updateStatus(`Showing vertices up to ${index}`);
+            hideModal(goToModal);
+            draw();
+        }
+
+        // Toggle between index and color display
+        function toggleDisplay() {
+            view.showIndex = !view.showIndex;
+            displayMode.textContent = view.showIndex ? 'Index' : 'Color';
+            updateStatus(`Display mode: ${view.showIndex ? 'Index' : 'Color'}`);
+            draw();
+        }
+
+        // Redraw the graph with improved layout
+        function redrawGraph() {
+            if (graph.vertices.length <= 3) {
+                showAlert('Need more than 3 vertices to redraw', 'info');
+                return;
+            }
+
+            showLoading(true, 'Redrawing graph...');
+
+            // Use setTimeout to allow UI to update
+            setTimeout(() => {
+                try {
+                    log('Redrawing graph');
+
+                    // Calculate center of the graph
+                    let centerX = 0, centerY = 0;
                     for (const vertex of graph.vertices) {
                         centerX += vertex.x;
                         centerY += vertex.y;
                     }
-                    
                     centerX /= graph.vertices.length;
                     centerY /= graph.vertices.length;
-                    
-                    // Calculate midpoint of the edge
-                    const midX = (v1.x + v2.x) / 2;
-                    const midY = (v1.y + v2.y) / 2;
-                    
-                    // Calculate vector from midpoint to center
-                    const vecX = midX - centerX;
-                    const vecY = midY - centerY;
-                    
-                    // Normalize vector
-                    const vecLength = Math.sqrt(vecX * vecX + vecY * vecY);
-                    const normVecX = vecX / vecLength;
-                    const normVecY = vecY / vecLength;
-                    
-                    // Distance between the vertices
-                    const distance = Math.sqrt(
-                        (v2.x - v1.x) * (v2.x - v1.x) + 
-                        (v2.y - v1.y) * (v2.y - v1.y)
+
+                    // Adjust periphery vertices to form a regular shape
+                    const peripheryCount = graph.periphery.length;
+                    const angleStep = 2 * Math.PI / peripheryCount;
+
+                    // Calculate average radius
+                    let avgRadius = 0;
+                    for (const id of graph.periphery) {
+                        const vertex = graph.vertices[id];
+                        const dx = vertex.x - centerX;
+                        const dy = vertex.y - centerY;
+                        avgRadius += Math.sqrt(dx * dx + dy * dy);
+                    }
+                    avgRadius /= peripheryCount;
+
+                    // Use a minimum radius based on vertex count
+                    const radius = Math.max(
+                        avgRadius,
+                        Math.sqrt(graph.vertices.length) * VERTEX_RADIUS * 2
                     );
-                    
-                    // Calculate control point (perpendicular to the line between vertices)
-                    edge.controlPoint = {
-                        x: midX + normVecY * distance * BEZIER_CURVE_FACTOR,
-                        y: midY - normVecX * distance * BEZIER_CURVE_FACTOR
-                    };
-                } else {
-                    edge.controlPoint = null; // No curve for periphery edges
-                }
-            }
-        }
-        
-        // Handle zoom in/out
-        function zoom(factor) {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            
-            // Adjust scale
-            viewState.scale *= factor;
-            
-            // Adjust offset to keep the center point fixed
-            viewState.offsetX = centerX - (centerX - viewState.offsetX) * factor;
-            viewState.offsetY = centerY - (centerY - viewState.offsetY) * factor;
-            
-            draw();
-        }
-        
-        // Center the graph on the canvas
-        function centerGraph() {
-            if (graph.vertices.length === 0) {
-                return;
-            }
-            
-            showLoading(true);
-            
-            setTimeout(() => {
-                // Reset rotation
-                viewState.rotation = 0;
-                
-                // Calculate the bounding box of the graph
-                let minX = Infinity;
-                let minY = Infinity;
-                let maxX = -Infinity;
-                let maxY = -Infinity;
-                
-                for (const vertex of graph.vertices) {
-                    if (vertex.id <= viewState.maxVertexVisible) {
-                        minX = Math.min(minX, vertex.x);
-                        minY = Math.min(minY, vertex.y);
-                        maxX = Math.max(maxX, vertex.x);
-                        maxY = Math.max(maxY, vertex.y);
+
+                    log('Periphery layout', { peripheryCount, angleStep, radius });
+
+                    // Position periphery vertices in a circle
+                    for (let i = 0; i < peripheryCount; i++) {
+                        const id = graph.periphery[i];
+                        const angle = i * angleStep;
+
+                        graph.vertices[id].x = centerX + radius * Math.cos(angle);
+                        graph.vertices[id].y = centerY + radius * Math.sin(angle);
                     }
-                }
-                
-                const graphWidth = maxX - minX + VERTEX_RADIUS_BASE * 4;
-                const graphHeight = maxY - minY + VERTEX_RADIUS_BASE * 4;
-                
-                // Calculate the scale needed to fit the graph in the canvas
-                const scaleX = canvas.width / graphWidth;
-                const scaleY = canvas.height / graphHeight;
-                viewState.scale = Math.min(scaleX, scaleY, 2) * 0.9; // Limit maximum zoom
-                
-                // Calculate the offset to center the graph
-                const graphCenterX = (minX + maxX) / 2;
-                const graphCenterY = (minY + maxY) / 2;
-                
-                viewState.offsetX = canvas.width / 2 - graphCenterX * viewState.scale;
-                viewState.offsetY = canvas.height / 2 - graphCenterY * viewState.scale;
-                
-                draw();
-                showLoading(false);
-                showAlert('Graph centered and resized', 'info');
-            }, 10);
-        }
-        
-        // Toggle between showing vertex indices or colors
-        function toggleDisplay() {
-            viewState.showIndex = !viewState.showIndex;
-            displayMode.textContent = viewState.showIndex ? 'Index' : 'Color';
-            updateStatus('Display mode: ' + (viewState.showIndex ? 'Index' : 'Color'));
-            draw();
-        }
-        
-        // Redraw the graph with improved layout
-        function redrawGraph() {
-            if (graph.vertices.length <= 3) {
-                showAlert('Need more than 3 vertices to redraw.', 'info');
-                return;
-            }
-            
-            showLoading(true);
-            
-            setTimeout(() => {
-                // Create a copy of the original graph
-                const originalGraph = JSON.parse(JSON.stringify(graph));
-                
-                // Calculate the center of the graph
-                let centerX = 0;
-                let centerY = 0;
-                
-                for (const vertex of graph.vertices) {
-                    centerX += vertex.x;
-                    centerY += vertex.y;
-                }
-                
-                centerX /= graph.vertices.length;
-                centerY /= graph.vertices.length;
-                
-                // Adjust peripheral vertices to form a more regular shape
-                const peripheryLength = graph.periphery.length;
-                const angleStep = (2 * Math.PI) / peripheryLength;
-                
-                // Calculate the average distance from center to periphery
-                let avgRadius = 0;
-                for (const vertexId of graph.periphery) {
-                    const vertex = graph.vertices[vertexId];
-                    const dx = vertex.x - centerX;
-                    const dy = vertex.y - centerY;
-                    avgRadius += Math.sqrt(dx * dx + dy * dy);
-                }
-                avgRadius /= peripheryLength;
-                
-                // Determine minimum radius based on number of vertices
-                const minRadius = Math.max(
-                    avgRadius,
-                    Math.sqrt(graph.vertices.length) * VERTEX_RADIUS_BASE * 2
-                );
-                
-                // Reposition periphery vertices in a circle
-                for (let i = 0; i < peripheryLength; i++) {
-                    const vertexId = graph.periphery[i];
-                    const angle = i * angleStep;
-                    
-                    graph.vertices[vertexId].x = centerX + minRadius * Math.cos(angle);
-                    graph.vertices[vertexId].y = centerY + minRadius * Math.sin(angle);
-                }
-                
-                // Reposition internal vertices using force-directed layout
-                const nonPeripheryVertices = graph.vertices
-                    .filter(v => !graph.periphery.includes(v.id))
-                    .map(v => v.id);
-                
-                if (nonPeripheryVertices.length > 0) {
-                    // Force-directed algorithm for internal vertices
-                    const iterations = 50;
-                    const repulsionForce = 500;
-                    const attractionForce = 0.005;
-                    
-                    for (let iter = 0; iter < iterations; iter++) {
-                        // Calculate forces
-                        for (const vertexId of nonPeripheryVertices) {
-                            let forceX = 0;
-                            let forceY = 0;
-                            
-                            // Repulsion from all other vertices
-                            for (const otherVertex of graph.vertices) {
-                                if (otherVertex.id === vertexId) continue;
-                                
-                                const dx = graph.vertices[vertexId].x - otherVertex.x;
-                                const dy = graph.vertices[vertexId].y - otherVertex.y;
-                                const distance = Math.sqrt(dx * dx + dy * dy);
-                                
-                                if (distance > 0) {
-                                    const force = repulsionForce / (distance * distance);
-                                    forceX += (dx / distance) * force;
-                                    forceY += (dy / distance) * force;
+
+                    // Position internal vertices using force-directed layout
+                    const innerVertices = graph.vertices
+                        .filter(v => !graph.periphery.includes(v.id))
+                        .map(v => v.id);
+
+                    log('Inner vertices', { count: innerVertices.length });
+
+                    if (innerVertices.length > 0) {
+                        // Apply force-directed layout
+                        const iterations = 50;
+                        for (let iter = 0; iter < iterations; iter++) {
+                            // For each inner vertex
+                            for (const id of innerVertices) {
+                                let fx = 0, fy = 0;
+
+                                // Repulsion from all other vertices
+                                for (const v of graph.vertices) {
+                                    if (v.id === id) continue;
+
+                                    const dx = graph.vertices[id].x - v.x;
+                                    const dy = graph.vertices[id].y - v.y;
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                    if (dist > 0) {
+                                        // Repulsive force (inverse square law)
+                                        const force = 500 / (dist * dist);
+                                        fx += (dx / dist) * force;
+                                        fy += (dy / dist) * force;
+                                    }
                                 }
-                            }
-                            
-                            // Attraction to connected vertices
-                            for (const edge of graph.edges) {
-                                let otherVertexId;
-                                if (edge.v1 === vertexId) {
-                                    otherVertexId = edge.v2;
-                                } else if (edge.v2 === vertexId) {
-                                    otherVertexId = edge.v1;
-                                } else {
-                                    continue;
+
+                                // Attraction to connected vertices
+                                for (const edge of graph.edges) {
+                                    let otherId;
+                                    if (edge.v1 === id) {
+                                        otherId = edge.v2;
+                                    } else if (edge.v2 === id) {
+                                        otherId = edge.v1;
+                                    } else {
+                                        continue;
+                                    }
+
+                                    const dx = graph.vertices[id].x - graph.vertices[otherId].x;
+                                    const dy = graph.vertices[id].y - graph.vertices[otherId].y;
+                                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                    // Attractive force (linear)
+                                    fx -= dx * 0.005 * dist;
+                                    fy -= dy * 0.005 * dist;
                                 }
-                                
-                                const dx = graph.vertices[vertexId].x - graph.vertices[otherVertexId].x;
-                                const dy = graph.vertices[vertexId].y - graph.vertices[otherVertexId].y;
-                                const distance = Math.sqrt(dx * dx + dy * dy);
-                                
-                                forceX -= dx * attractionForce * distance;
-                                forceY -= dy * attractionForce * distance;
-                            }
-                            
-                            // Apply forces (limited to prevent extreme movements)
-                            const maxForce = 5;
-                            const forceMagnitude = Math.sqrt(forceX * forceX + forceY * forceY);
-                            if (forceMagnitude > maxForce) {
-                                forceX = (forceX / forceMagnitude) * maxForce;
-                                forceY = (forceY / forceMagnitude) * maxForce;
-                            }
-                            
-                            graph.vertices[vertexId].x += forceX;
-                            graph.vertices[vertexId].y += forceY;
-                        }
-                        
-                        // Check for vertices moving too close to center or too far out
-                        for (const vertexId of nonPeripheryVertices) {
-                            const dx = graph.vertices[vertexId].x - centerX;
-                            const dy = graph.vertices[vertexId].y - centerY;
-                            const distanceToCenter = Math.sqrt(dx * dx + dy * dy);
-                            
-                            // Keep vertices inside the periphery
-                            if (distanceToCenter > minRadius * 0.9) {
-                                // Move vertex back toward center
-                                const factor = (minRadius * 0.8) / distanceToCenter;
-                                graph.vertices[vertexId].x = centerX + dx * factor;
-                                graph.vertices[vertexId].y = centerY + dy * factor;
-                            }
-                            
-                            // Ensure vertices aren't too close to center
-                            if (distanceToCenter < minRadius * 0.1) {
-                                const newDistance = minRadius * 0.2;
-                                const angle = Math.atan2(dy, dx);
-                                graph.vertices[vertexId].x = centerX + Math.cos(angle) * newDistance;
-                                graph.vertices[vertexId].y = centerY + Math.sin(angle) * newDistance;
+
+                                // Limit force magnitude
+                                const fMag = Math.sqrt(fx * fx + fy * fy);
+                                if (fMag > 5) {
+                                    fx = (fx / fMag) * 5;
+                                    fy = (fy / fMag) * 5;
+                                }
+
+                                // Apply force
+                                graph.vertices[id].x += fx;
+                                graph.vertices[id].y += fy;
+
+                                // Keep vertices inside the periphery
+                                const dx = graph.vertices[id].x - centerX;
+                                const dy = graph.vertices[id].y - centerY;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                if (dist > radius * 0.9) {
+                                    // Move vertex back inside
+                                    const scale = (radius * 0.8) / dist;
+                                    graph.vertices[id].x = centerX + dx * scale;
+                                    graph.vertices[id].y = centerY + dy * scale;
+                                }
                             }
                         }
                     }
+
+                    // Homogenize edge lengths
+                    homogenizeEdges();
+
+                    // Center the graph
+                    centerGraph();
+
+                    log('Graph redraw complete');
+                    showAlert('Graph redrawn with improved layout', 'success');
+                } catch (error) {
+                    log('Error redrawing graph', error);
+                    showAlert('Error redrawing graph: ' + error.message, 'error');
+                } finally {
+                    showLoading(false);
                 }
-                
-                // Calculate control points for curved edges
-                calculateEdgeControlPoints();
-                
-                // Homogenize edge lengths
-                homogenizeEdges();
-                
-                updateStatus('Graph redrawn with improved layout');
-                centerGraph();
-                showAlert('Graph redrawn with optimized layout', 'success');
             }, 10);
         }
-        
-        // Homogenize edge lengths to make graph more regular
+
+        // Homogenize edge lengths
         function homogenizeEdges() {
             // Calculate average edge length
             let totalLength = 0;
-            let edgeCount = 0;
-            
+            let count = 0;
+
             for (const edge of graph.edges) {
                 const v1 = graph.vertices[edge.v1];
                 const v2 = graph.vertices[edge.v2];
                 const dx = v2.x - v1.x;
                 const dy = v2.y - v1.y;
                 totalLength += Math.sqrt(dx * dx + dy * dy);
-                edgeCount++;
+                count++;
             }
-            
-            const avgLength = totalLength / edgeCount;
-            
-            // Adjust non-periphery vertices to make edges more homogeneous
-            const nonPeripheryVertices = graph.vertices
+
+            if (count === 0) return;
+
+            const avgLength = totalLength / count;
+            log('Homogenizing edges', { avgLength });
+
+            // Get non-periphery vertices
+            const innerVertices = graph.vertices
                 .filter(v => !graph.periphery.includes(v.id))
                 .map(v => v.id);
-            
-            for (let i = 0; i < 10; i++) { // Several iterations for better results
-                for (const vertexId of nonPeripheryVertices) {
-                    let connectedEdges = graph.edges.filter(e => e.v1 === vertexId || e.v2 === vertexId);
-                    let forceX = 0;
-                    let forceY = 0;
-                    
+
+            // Apply several iterations
+            for (let iter = 0; iter < 10; iter++) {
+                for (const id of innerVertices) {
+                    // Get connected edges
+                    const connectedEdges = graph.edges.filter(
+                        e => e.v1 === id || e.v2 === id
+                    );
+
+                    let fx = 0, fy = 0;
+
                     for (const edge of connectedEdges) {
-                        const otherVertexId = edge.v1 === vertexId ? edge.v2 : edge.v1;
-                        const v = graph.vertices[vertexId];
-                        const other = graph.vertices[otherVertexId];
-                        
+                        const otherId = edge.v1 === id ? edge.v2 : edge.v1;
+                        const v = graph.vertices[id];
+                        const other = graph.vertices[otherId];
+
                         const dx = other.x - v.x;
                         const dy = other.y - v.y;
-                        const length = Math.sqrt(dx * dx + dy * dy);
-                        
-                        if (length === 0) continue;
-                        
-                        const diff = length - avgLength;
-                        forceX += (dx / length) * diff * 0.1;
-                        forceY += (dy / length) * diff * 0.1;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        if (dist > 0) {
+                            // Force to adjust length
+                            const diff = dist - avgLength;
+                            fx += (dx / dist) * diff * 0.1;
+                            fy += (dy / dist) * diff * 0.1;
+                        }
                     }
-                    
+
                     // Apply force
-                    graph.vertices[vertexId].x += forceX;
-                    graph.vertices[vertexId].y += forceY;
+                    graph.vertices[id].x += fx;
+                    graph.vertices[id].y += fy;
                 }
             }
         }
-        
-        // Enable buttons after initial graph is created
+
+        // Validate the graph structure
+        function validateGraph() {
+            showLoading(true, 'Validating graph...');
+
+            setTimeout(() => {
+                try {
+                    log('Validating graph structure');
+
+                    const debugContent = document.getElementById('debugContent');
+                    debugContent.innerHTML = '';
+
+                    let issues = [];
+
+                    // Check for invalid vertex references in edges
+                    for (const edge of graph.edges) {
+                        if (edge.v1 >= graph.vertices.length || edge.v2 >= graph.vertices.length) {
+                            issues.push(`Edge references non-existent vertex: V${edge.v1 + 1}-V${edge.v2 + 1}`);
+                        }
+                    }
+
+                    // Check for invalid periphery references
+                    for (const id of graph.periphery) {
+                        if (id >= graph.vertices.length) {
+                            issues.push(`Periphery references non-existent vertex: V${id + 1}`);
+                        }
+                    }
+
+                    // Check for empty periphery
+                    if (graph.periphery.length === 0) {
+                        issues.push('Periphery is empty');
+                    }
+
+                    // Check for duplicates in periphery
+                    const uniquePeriphery = [...new Set(graph.periphery)];
+                    if (uniquePeriphery.length !== graph.periphery.length) {
+                        issues.push('Periphery contains duplicate vertices');
+                    }
+
+                    // Check periphery connectivity
+                    for (let i = 0; i < graph.periphery.length; i++) {
+                        const v1 = graph.periphery[i];
+                        const v2 = graph.periphery[(i + 1) % graph.periphery.length];
+
+                        const edgeExists = graph.edges.some(edge =>
+                            (edge.v1 === v1 && edge.v2 === v2) ||
+                            (edge.v1 === v2 && edge.v2 === v1)
+                        );
+
+                        if (!edgeExists) {
+                            issues.push(`Missing edge between periphery vertices V${v1 + 1} and V${v2 + 1}`);
+                        }
+                    }
+
+                    log('Validation results', { issues });
+
+                    // Create validation result element
+                    const result = document.createElement('div');
+                    result.className = 'validation-result ' +
+                        (issues.length === 0 ? 'validation-success' : 'validation-error');
+
+                    if (issues.length === 0) {
+                        result.innerHTML = '<strong>✓ Graph is valid!</strong>';
+                        result.innerHTML += '<p>All structure checks passed successfully.</p>';
+                        showAlert('Graph structure is valid', 'success');
+                    } else {
+                        result.innerHTML = `<strong>⚠️ Found ${issues.length} issues:</strong>`;
+
+                        const list = document.createElement('ul');
+                        list.className = 'validation-list';
+
+                        issues.forEach(issue => {
+                            const item = document.createElement('li');
+                            item.className = 'validation-item';
+                            item.textContent = issue;
+                            list.appendChild(item);
+                        });
+
+                        result.appendChild(list);
+
+                        if (issues.some(issue => issue.includes('non-existent'))) {
+                            const fixBtn = document.createElement('button');
+                            fixBtn.textContent = 'Fix Graph Structure';
+                            fixBtn.addEventListener('click', fixGraph);
+                            result.appendChild(fixBtn);
+                        }
+
+                        showAlert(`Found ${issues.length} issues with the graph`, 'error');
+
+                        // Fix critical issues
+                        fixGraph();
+                    }
+
+                    debugContent.appendChild(result);
+                    document.getElementById('debugPanel').classList.add('show');
+
+                } catch (error) {
+                    log('Error validating graph', error);
+                    showAlert('Error validating graph: ' + error.message, 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }, 10);
+        }
+
+        // Fix graph structure issues
+        function fixGraph() {
+            try {
+                log('Fixing graph structure');
+
+                // Remove invalid edges
+                graph.edges = graph.edges.filter(edge =>
+                    edge.v1 < graph.vertices.length &&
+                    edge.v2 < graph.vertices.length
+                );
+
+                // Remove invalid periphery vertices
+                graph.periphery = graph.periphery.filter(id =>
+                    id < graph.vertices.length
+                );
+
+                // Remove duplicates from periphery
+                graph.periphery = [...new Set(graph.periphery)];
+
+                // If periphery is empty, add vertex 0
+                if (graph.periphery.length === 0 && graph.vertices.length > 0) {
+                    graph.periphery = [0];
+                }
+
+                updateGraphInfo();
+                draw();
+
+                log('Graph fixed', {
+                    edges: graph.edges.length,
+                    periphery: graph.periphery
+                });
+            } catch (error) {
+                log('Error fixing graph', error);
+            }
+        }
+
+        // Fix periphery by finding the convex hull
+        function fixPeriphery() {
+            showLoading(true, 'Fixing periphery...');
+
+            setTimeout(() => {
+                try {
+                    log('Fixing periphery');
+
+                    if (graph.vertices.length <= 3) {
+                        // For 3 or fewer vertices, all are on the periphery
+                        graph.periphery = graph.vertices.map(v => v.id);
+                    } else {
+                        // Use Jarvis march (gift wrapping) to find convex hull
+                        const hull = findConvexHull();
+
+                        if (hull.length >= 3) {
+                            graph.periphery = hull;
+
+                            // Ensure all periphery vertices are connected
+                            for (let i = 0; i < hull.length; i++) {
+                                const v1 = hull[i];
+                                const v2 = hull[(i + 1) % hull.length];
+
+                                // Add edge if it doesn't exist
+                                if (!graph.edges.some(e =>
+                                    (e.v1 === v1 && e.v2 === v2) ||
+                                    (e.v1 === v2 && e.v2 === v1)
+                                )) {
+                                    addEdge(v1, v2);
+                                }
+                            }
+                        }
+                    }
+
+                    log('Periphery fixed', graph.periphery);
+                    updateGraphInfo();
+                    draw();
+                    showAlert('Periphery fixed', 'success');
+                } catch (error) {
+                    log('Error fixing periphery', error);
+                    showAlert('Error fixing periphery: ' + error.message, 'error');
+                } finally {
+                    showLoading(false);
+                }
+            }, 10);
+        }
+
+        // Find the convex hull using Jarvis march algorithm
+        function findConvexHull() {
+            if (graph.vertices.length < 3) {
+                return graph.vertices.map(v => v.id);
+            }
+
+            // Find leftmost vertex
+            let leftmost = 0;
+            for (let i = 1; i < graph.vertices.length; i++) {
+                if (graph.vertices[i].x < graph.vertices[leftmost].x) {
+                    leftmost = i;
+                }
+            }
+
+            let hull = [];
+            let p = leftmost;
+            let q;
+
+            // Loop to find convex hull
+            do {
+                hull.push(p);
+
+                q = (p + 1) % graph.vertices.length;
+
+                for (let i = 0; i < graph.vertices.length; i++) {
+                    // If i is more counterclockwise than current q
+                    if (orientation(
+                        graph.vertices[p],
+                        graph.vertices[i],
+                        graph.vertices[q]
+                    ) < 0) {
+                        q = i;
+                    }
+                }
+
+                p = q;
+            } while (p !== leftmost);
+
+            return hull;
+        }
+
+        // Helper function for convex hull - orientation of three points
+        function orientation(p, q, r) {
+            const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+
+            if (val === 0) return 0;  // Collinear
+            return (val > 0) ? 1 : -1; // Clockwise or Counterclockwise
+        }
+
+        // Enable buttons after graph is created
         function enableButtons() {
-            randomBtn.disabled = false;
             addBtn.disabled = false;
+            randomBtn.disabled = false;
             goToBtn.disabled = false;
             zoomInBtn.disabled = false;
             zoomOutBtn.disabled = false;
@@ -1635,414 +1865,554 @@
             redrawBtn.disabled = false;
             colorBtn.disabled = false;
         }
-        
-        // Update the status message
-        function updateStatus(message) {
-            statusText.textContent = message;
-        }
-        
-        // Update graph information in the info panel
+
+        // Update graph information in the UI
         function updateGraphInfo() {
-            vertexCount.textContent = `Vertices: ${graph.vertices.length}`;
-            vertexCountDetail.textContent = graph.vertices.length;
+            vertexCounter.textContent = `Vertices: ${graph.vertices.length}`;
+            vertexCount.textContent = graph.vertices.length;
             edgeCount.textContent = graph.edges.length;
             peripheryCount.textContent = graph.periphery.length;
-            
+
+            // Update visibility text
+            updateVisibilityText();
+
             // Update periphery list
             peripheryList.innerHTML = '';
+
             if (graph.periphery.length === 0) {
                 const item = document.createElement('div');
                 item.className = 'vertex-item';
                 item.textContent = 'No vertices yet';
                 peripheryList.appendChild(item);
             } else {
-                for (const vertexId of graph.periphery) {
+                for (const id of graph.periphery) {
                     const item = document.createElement('div');
                     item.className = 'vertex-item';
-                    
-                    const idSpan = document.createElement('span');
-                    idSpan.className = 'vertex-id';
-                    idSpan.textContent = `V${vertexId + 1}`;
-                    
-                    const coordsSpan = document.createElement('span');
-                    coordsSpan.textContent = `(${Math.round(graph.vertices[vertexId].x)}, ${Math.round(graph.vertices[vertexId].y)})`;
-                    
-                    item.appendChild(idSpan);
-                    item.appendChild(coordsSpan);
+
+                    const v = graph.vertices[id];
+                    const label = document.createElement('span');
+                    label.textContent = `V${id + 1}`;
+
+                    const coords = document.createElement('span');
+                    coords.textContent = `(${Math.round(v.x)}, ${Math.round(v.y)})`;
+
+                    item.appendChild(label);
+                    item.appendChild(coords);
                     peripheryList.appendChild(item);
                 }
             }
+
+            updateSelectionInfo();
         }
-        
-        // Update selection information in the info panel
+
+        // Update selection information
         function updateSelectionInfo() {
-            if (selectionState.selectedVertices.length > 0) {
-                const vertexLabels = selectionState.selectedVertices.map(id => `V${id + 1}`).join(', ');
-                selectionInfo.textContent = vertexLabels;
+            if (selection.vertices.length > 0) {
+                const labels = selection.vertices.map(id => `V${id + 1}`).join(', ');
+                selectionInfo.textContent = labels;
             } else {
                 selectionInfo.textContent = 'None';
             }
         }
-        
+
         // Handle mouse down event
         function handleMouseDown(e) {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            
+
             // Check if a vertex was clicked
             const clickedVertex = findVertexAt(mouseX, mouseY);
-            
-            if (selectionState.mode === 'addVertex') {
-                if (clickedVertex !== null) {
-                    // Check if the clicked vertex is on the periphery
-                    if (graph.periphery.includes(clickedVertex)) {
-                        if (selectionState.firstVertex === null) {
-                            selectionState.firstVertex = clickedVertex;
-                            selectionState.selectedVertices = [clickedVertex];
-                            updateStatus('Select the second vertex (Vq) on the periphery.');
-                            updateSelectionInfo();
-                            draw();
-                        } else {
-                            selectionState.secondVertex = clickedVertex;
-                            selectionState.selectedVertices.push(clickedVertex);
-                            updateSelectionInfo();
-                            draw();
-                            
-                            // Add the new vertex
-                            setTimeout(() => {
-                                addNewVertexToPeriphery(selectionState.firstVertex, selectionState.secondVertex);
-                            }, 100);
-                        }
+
+            if (selection.mode === 'add' && clickedVertex !== null) {
+                // Check if vertex is on periphery
+                if (graph.periphery.includes(clickedVertex)) {
+                    if (selection.firstVertex === null) {
+                        // First vertex selection
+                        selection.firstVertex = clickedVertex;
+                        selection.vertices = [clickedVertex];
+                        updateStatus('Select the second vertex (Vq) on the periphery');
+                        updateSelectionInfo();
+                        draw();
+
+                        log('First vertex selected', clickedVertex);
                     } else {
-                        updateStatus('Selected vertex must be on the periphery.');
-                        showAlert('Selected vertex must be on the periphery.', 'error');
+                        // Don't allow selecting the same vertex twice
+                        if (selection.firstVertex === clickedVertex) {
+                            showAlert('Please select a different vertex', 'error');
+                            return;
+                        }
+
+                        // Second vertex selection
+                        selection.secondVertex = clickedVertex;
+                        selection.vertices.push(clickedVertex);
+                        updateSelectionInfo();
+                        draw();
+
+                        log('Second vertex selected', {
+                            first: selection.firstVertex,
+                            second: clickedVertex
+                        });
+
+                        // Add new vertex
+                        setTimeout(() => {
+                            try {
+                                showLoading(true, 'Adding vertex...');
+                                addNewVertex(selection.firstVertex, selection.secondVertex);
+                            } catch (error) {
+                                log('Error in vertex addition', error);
+                            } finally {
+                                showLoading(false);
+                            }
+                        }, 100);
                     }
+                } else {
+                    showAlert('Selected vertex must be on the periphery', 'error');
                 }
-            } else if (e.button === 0) { // Left mouse button - pan
-                // Start dragging the view
-                viewState.isDragging = true;
-                viewState.dragStartX = mouseX;
-                viewState.dragStartY = mouseY;
+            } else if (e.button === 0) { // Left mouse button
+                // Start panning
+                view.isDragging = true;
+                view.dragStartX = mouseX;
+                view.dragStartY = mouseY;
                 canvas.style.cursor = 'grabbing';
-            } else if (e.button === 2) { // Right mouse button - rotate
-                // Start rotating the view
-                viewState.isRotating = true;
-                viewState.dragStartX = mouseX;
-                viewState.dragStartY = mouseY;
+            } else if (e.button === 2) { // Right mouse button
+                // Start rotating
+                view.isRotating = true;
+                view.dragStartX = mouseX;
+                view.dragStartY = mouseY;
                 canvas.style.cursor = 'grabbing';
             }
         }
-        
+
         // Handle mouse move event
         function handleMouseMove(e) {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            
+
             // Update coordinates display
-            const graphX = (mouseX - viewState.offsetX) / viewState.scale;
-            const graphY = (mouseY - viewState.offsetY) / viewState.scale;
-            coordsDisplay.textContent = `(${Math.round(graphX)}, ${Math.round(graphY)})`;
-            
-            if (viewState.isDragging) {
-                // Move the view
-                viewState.offsetX += mouseX - viewState.dragStartX;
-                viewState.offsetY += mouseY - viewState.dragStartY;
-                viewState.dragStartX = mouseX;
-                viewState.dragStartY = mouseY;
+            const graphX = (mouseX - view.offsetX) / view.scale;
+            const graphY = (mouseY - view.offsetY) / view.scale;
+            coordinates.textContent = `(${Math.round(graphX)}, ${Math.round(graphY)})`;
+
+            if (view.isDragging) {
+                // Pan the view
+                view.offsetX += mouseX - view.dragStartX;
+                view.offsetY += mouseY - view.dragStartY;
+                view.dragStartX = mouseX;
+                view.dragStartY = mouseY;
                 draw();
-            } else if (viewState.isRotating) {
+            } else if (view.isRotating) {
                 // Rotate the view
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
-                
-                // Calculate angles
-                const prevAngle = Math.atan2(viewState.dragStartY - centerY, viewState.dragStartX - centerX);
+
+                const prevAngle = Math.atan2(view.dragStartY - centerY, view.dragStartX - centerX);
                 const newAngle = Math.atan2(mouseY - centerY, mouseX - centerX);
-                
-                // Update rotation
-                viewState.rotation += (newAngle - prevAngle);
-                
-                viewState.dragStartX = mouseX;
-                viewState.dragStartY = mouseY;
+
+                view.rotation += newAngle - prevAngle;
+
+                view.dragStartX = mouseX;
+                view.dragStartY = mouseY;
                 draw();
             } else {
                 // Highlight vertex under cursor
                 const hoveredVertex = findVertexAt(mouseX, mouseY);
-                if (hoveredVertex !== null) {
-                    canvas.style.cursor = 'pointer';
-                } else {
-                    canvas.style.cursor = 'grab';
-                }
+                canvas.style.cursor = hoveredVertex !== null ? 'pointer' : 'grab';
             }
         }
-        
+
         // Handle mouse up event
         function handleMouseUp() {
-            viewState.isDragging = false;
-            viewState.isRotating = false;
+            view.isDragging = false;
+            view.isRotating = false;
             canvas.style.cursor = 'grab';
         }
-        
-        // Handle mouse wheel event for zooming
+
+        // Handle mouse wheel event
         function handleWheel(e) {
             e.preventDefault();
-            
+
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            
+
             // Calculate position in graph coordinates
-            const graphX = (mouseX - viewState.offsetX) / viewState.scale;
-            const graphY = (mouseY - viewState.offsetY) / viewState.scale;
-            
-            // Determine zoom direction and factor
+            const graphX = (mouseX - view.offsetX) / view.scale;
+            const graphY = (mouseY - view.offsetY) / view.scale;
+
+            // Determine zoom direction
             const delta = -Math.sign(e.deltaY);
             const factor = delta > 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-            
+
             // Adjust scale
-            viewState.scale *= factor;
-            
-            // Adjust offset to zoom toward cursor position
-            viewState.offsetX = mouseX - graphX * viewState.scale;
-            viewState.offsetY = mouseY - graphY * viewState.scale;
-            
+            view.scale *= factor;
+
+            // Adjust offset to zoom toward cursor
+            view.offsetX = mouseX - graphX * view.scale;
+            view.offsetY = mouseY - graphY * view.scale;
+
             draw();
         }
-        
-        // Handle double click to center at point
+
+        // Handle double click event
         function handleDoubleClick(e) {
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
-            
+
             const clickedVertex = findVertexAt(mouseX, mouseY);
-            
+
             if (clickedVertex !== null) {
-                // Center on clicked vertex
+                // Center on the clicked vertex
                 const vertex = graph.vertices[clickedVertex];
-                viewState.offsetX = canvas.width / 2 - vertex.x * viewState.scale;
-                viewState.offsetY = canvas.height / 2 - vertex.y * viewState.scale;
+                view.offsetX = canvas.width / 2 - vertex.x * view.scale;
+                view.offsetY = canvas.height / 2 - vertex.y * view.scale;
                 draw();
             }
         }
-        
-        // Find a vertex at the given coordinates
+
+        // Find vertex at coordinates
         function findVertexAt(x, y) {
-            // Convert screen coordinates to graph coordinates
+            // Convert screen to graph coordinates
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            
-            // Apply rotation in reverse
-            const rotatedX = centerX + (x - centerX) * Math.cos(-viewState.rotation) - (y - centerY) * Math.sin(-viewState.rotation);
-            const rotatedY = centerY + (x - centerX) * Math.sin(-viewState.rotation) + (y - centerY) * Math.cos(-viewState.rotation);
-            
-            // Apply scale and offset
-            const graphX = (rotatedX - viewState.offsetX) / viewState.scale;
-            const graphY = (rotatedY - viewState.offsetY) / viewState.scale;
-            
+
+            // Apply inverse rotation
+            const rotatedX = centerX + (x - centerX) * Math.cos(-view.rotation) -
+                (y - centerY) * Math.sin(-view.rotation);
+            const rotatedY = centerY + (x - centerX) * Math.sin(-view.rotation) +
+                (y - centerY) * Math.cos(-view.rotation);
+
+            // Apply inverse scale and translation
+            const graphX = (rotatedX - view.offsetX) / view.scale;
+            const graphY = (rotatedY - view.offsetY) / view.scale;
+
             // Check each vertex
             for (const vertex of graph.vertices) {
-                if (vertex.id > viewState.maxVertexVisible) {
-                    continue;
-                }
-                
+                if (vertex.id > view.maxVisibleVertex) continue;
+
                 const dx = vertex.x - graphX;
                 const dy = vertex.y - graphY;
                 const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                // Adjust radius based on vertex index
-                const vertexRadius = getVertexRadius(vertex);
-                
-                if (distance <= vertexRadius) {
+
+                // Check if within vertex radius
+                if (distance <= VERTEX_RADIUS) {
                     return vertex.id;
                 }
             }
-            
+
             return null;
         }
-        
-        // Get vertex radius based on ID (larger radius for higher indices)
-        function getVertexRadius(vertex) {
-            // Base radius + small increment for each digit in the index
-            const digitCount = (vertex.id + 1).toString().length;
-            return VERTEX_RADIUS_BASE + (digitCount - 1) * 2;
+
+        // Zoom the view
+        function zoom(factor) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Adjust scale
+            view.scale *= factor;
+
+            // Adjust offset to keep center fixed
+            view.offsetX = centerX - (centerX - view.offsetX) * factor;
+            view.offsetY = centerY - (centerY - view.offsetY) * factor;
+
+            draw();
         }
-        
+
+        // Center the graph on the canvas
+        function centerGraph() {
+            if (graph.vertices.length === 0) return;
+
+            showLoading(true, 'Centering graph...');
+
+            setTimeout(() => {
+                try {
+                    // Reset rotation
+                    view.rotation = 0;
+
+                    // Find bounding box
+                    let minX = Infinity, minY = Infinity;
+                    let maxX = -Infinity, maxY = -Infinity;
+
+                    for (const vertex of graph.vertices) {
+                        if (vertex.id > view.maxVisibleVertex) continue;
+
+                        minX = Math.min(minX, vertex.x);
+                        minY = Math.min(minY, vertex.y);
+                        maxX = Math.max(maxX, vertex.x);
+                        maxY = Math.max(maxY, vertex.y);
+                    }
+
+                    const graphWidth = maxX - minX + VERTEX_RADIUS * 4;
+                    const graphHeight = maxY - minY + VERTEX_RADIUS * 4;
+
+                    // Calculate scale to fit
+                    const scaleX = canvas.width / graphWidth;
+                    const scaleY = canvas.height / graphHeight;
+                    view.scale = Math.min(scaleX, scaleY, 2) * 0.9;
+
+                    // Calculate offset to center
+                    const centerX = (minX + maxX) / 2;
+                    const centerY = (minY + maxY) / 2;
+
+                    view.offsetX = canvas.width / 2 - centerX * view.scale;
+                    view.offsetY = canvas.height / 2 - centerY * view.scale;
+
+                    draw();
+                } catch (error) {
+                    log('Error centering graph', error);
+                } finally {
+                    showLoading(false);
+                }
+            }, 10);
+        }
+
+        // Set up color palettes
+        function setupColorPalettes() {
+            const colorOptions = [
+                '#3a6ea5', '#6c8ebf', '#b8cfe5', '#e63946', '#f1faee',
+                '#a8dadc', '#457b9d', '#1d3557', '#ffadad', '#ffd6a5',
+                '#fdffb6', '#caffbf', '#9bf6ff', '#a0c4ff', '#bdb2ff',
+                '#ffc6ff', '#ff99c8', '#fcf6bd', '#d0f4de', '#a9def9'
+            ];
+
+            function setupPalette(container, property, onChange) {
+                container.innerHTML = '';
+
+                for (const color of colorOptions) {
+                    const option = document.createElement('div');
+                    option.className = 'color-option';
+                    option.style.backgroundColor = color;
+
+                    if (colors[property] === color) {
+                        option.classList.add('selected');
+                    }
+
+                    option.addEventListener('click', () => {
+                        // Remove selection from all options
+                        container.querySelectorAll('.color-option').forEach(
+                            el => el.classList.remove('selected')
+                        );
+
+                        // Select this option
+                        option.classList.add('selected');
+
+                        // Update color
+                        onChange(color);
+                    });
+
+                    container.appendChild(option);
+                }
+            }
+
+            // Set up all color palettes
+            setupPalette(vertexStrokeColors, 'vertexStroke', color => colors.vertexStroke = color);
+            setupPalette(vertexFillColors, 'vertexFill', color => colors.vertexFill = color);
+            setupPalette(edgeColors, 'edgeColor', color => colors.edgeColor = color);
+            setupPalette(peripheryColors, 'peripheryColor', color => colors.peripheryColor = color);
+
+            // Set up color palette
+            colorPalette.innerHTML = '';
+            for (let i = 0; i < colors.palette.length; i++) {
+                const option = document.createElement('div');
+                option.className = 'color-option';
+                option.style.backgroundColor = colors.palette[i];
+
+                option.addEventListener('click', () => {
+                    // Create color picker
+                    const input = document.createElement('input');
+                    input.type = 'color';
+                    input.value = colors.palette[i];
+                    document.body.appendChild(input);
+
+                    input.addEventListener('input', () => {
+                        colors.palette[i] = input.value;
+                        option.style.backgroundColor = input.value;
+                    });
+
+                    input.addEventListener('change', () => {
+                        document.body.removeChild(input);
+                    });
+
+                    input.click();
+                });
+
+                colorPalette.appendChild(option);
+            }
+        }
+
+        // Save color settings
+        function saveColors() {
+            hideModal(colorModal);
+            draw();
+            showAlert('Color settings saved', 'success');
+        }
+
+        // Reset color settings to default
+        function resetColors() {
+            colors = JSON.parse(JSON.stringify(defaultColors));
+            setupColorPalettes();
+            draw();
+            showAlert('Colors reset to default', 'info');
+        }
+
         // Draw the graph
         function draw() {
-            // Clear the canvas
+            // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Apply the view transformation
+
+            // Apply view transformation
             ctx.save();
-            
+
             // Move to center for rotation
             ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(viewState.rotation);
+            ctx.rotate(view.rotation);
             ctx.translate(-canvas.width / 2, -canvas.height / 2);
-            
+
             // Apply translation and scale
-            ctx.translate(viewState.offsetX, viewState.offsetY);
-            ctx.scale(viewState.scale, viewState.scale);
-            
+            ctx.translate(view.offsetX, view.offsetY);
+            ctx.scale(view.scale, view.scale);
+
             // Draw edges
             for (const edge of graph.edges) {
-                // Skip edges connected to hidden vertices
-                if (edge.v1 > viewState.maxVertexVisible || edge.v2 > viewState.maxVertexVisible) {
+                // Skip edges to invisible vertices
+                if (edge.v1 > view.maxVisibleVertex || edge.v2 > view.maxVisibleVertex) {
                     continue;
                 }
-                
+
                 const v1 = graph.vertices[edge.v1];
                 const v2 = graph.vertices[edge.v2];
-                
-                // Check if this edge is part of the periphery
-                const isPeripheryEdge = 
-                    graph.periphery.includes(edge.v1) && 
-                    graph.periphery.includes(edge.v2) &&
-                    (
-                        graph.periphery[(graph.periphery.indexOf(edge.v1) + 1) % graph.periphery.length] === edge.v2 ||
-                        graph.periphery[(graph.periphery.indexOf(edge.v2) + 1) % graph.periphery.length] === edge.v1
-                    );
-                
+
+                // Check if edge is part of periphery
+                const isPeripheryEdge = isEdgeInPeriphery(edge.v1, edge.v2);
+
+                // Set edge style
                 ctx.beginPath();
-                
-                if (edge.controlPoint && !isPeripheryEdge) {
+                ctx.moveTo(v1.x, v1.y);
+
+                // Draw curved edge for internal edges
+                if (!isPeripheryEdge && graph.vertices.length > 4) {
+                    // Calculate midpoint
+                    const midX = (v1.x + v2.x) / 2;
+                    const midY = (v1.y + v2.y) / 2;
+
+                    // Get center of graph
+                    let centerX = 0, centerY = 0;
+                    for (const v of graph.vertices) {
+                        centerX += v.x;
+                        centerY += v.y;
+                    }
+                    centerX /= graph.vertices.length;
+                    centerY /= graph.vertices.length;
+
+                    // Vector from midpoint to center
+                    const dx = midX - centerX;
+                    const dy = midY - centerY;
+
+                    // Normalize
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const nx = len > 0 ? dx / len : 0;
+                    const ny = len > 0 ? dy / len : 0;
+
+                    // Distance between vertices
+                    const dist = Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
+
+                    // Control point for quadratic curve
+                    const cpX = midX + ny * dist * 0.2;
+                    const cpY = midY - nx * dist * 0.2;
+
                     // Draw curved edge
-                    ctx.moveTo(v1.x, v1.y);
-                    ctx.quadraticCurveTo(
-                        edge.controlPoint.x,
-                        edge.controlPoint.y,
-                        v2.x,
-                        v2.y
-                    );
+                    ctx.quadraticCurveTo(cpX, cpY, v2.x, v2.y);
                 } else {
                     // Draw straight edge
-                    ctx.moveTo(v1.x, v1.y);
                     ctx.lineTo(v2.x, v2.y);
                 }
-                
-                ctx.strokeStyle = isPeripheryEdge ? colorState.peripheryColor : colorState.edgeColor;
-                ctx.lineWidth = isPeripheryEdge ? 2.5 : 1.5;
+
+                // Set edge color
+                ctx.strokeStyle = isPeripheryEdge ? colors.peripheryColor : colors.edgeColor;
+                ctx.lineWidth = isPeripheryEdge ? 2 : 1.5;
                 ctx.stroke();
             }
-            
+
             // Draw vertices
             for (const vertex of graph.vertices) {
-                // Skip hidden vertices
-                if (vertex.id > viewState.maxVertexVisible) {
+                // Skip invisible vertices
+                if (vertex.id > view.maxVisibleVertex) {
                     continue;
                 }
-                
-                // Determine if this vertex is selected
-                const isSelected = selectionState.selectedVertices.includes(vertex.id);
-                
-                // Determine if this vertex is on the periphery
+
+                // Check if vertex is selected
+                const isSelected = selection.vertices.includes(vertex.id);
+
+                // Check if vertex is on periphery
                 const isPeriphery = graph.periphery.includes(vertex.id);
-                
-                // Adjust radius based on vertex index
-                const vertexRadius = getVertexRadius(vertex);
-                
+
                 // Draw vertex circle
                 ctx.beginPath();
-                ctx.arc(vertex.x, vertex.y, vertexRadius, 0, 2 * Math.PI);
-                ctx.fillStyle = isSelected ? colorState.selectedColor : 
-                                (viewState.showIndex ? colorState.vertexFill : colorState.colors[vertex.color % colorState.colors.length]);
+                ctx.arc(vertex.x, vertex.y, VERTEX_RADIUS, 0, Math.PI * 2);
+
+                // Fill with appropriate color
+                if (isSelected) {
+                    ctx.fillStyle = colors.selectedColor;
+                } else if (view.showIndex) {
+                    ctx.fillStyle = colors.vertexFill;
+                } else {
+                    ctx.fillStyle = colors.palette[vertex.color % colors.palette.length];
+                }
                 ctx.fill();
-                
-                // Add gradient effect for vertices
+
+                // Add gradient effect
                 const gradient = ctx.createRadialGradient(
                     vertex.x, vertex.y, 0,
-                    vertex.x, vertex.y, vertexRadius
+                    vertex.x, vertex.y, VERTEX_RADIUS
                 );
-                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
                 gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                
+
                 ctx.fillStyle = gradient;
                 ctx.fill();
-                
-                ctx.strokeStyle = isPeriphery ? colorState.peripheryColor : colorState.vertexStroke;
-                ctx.lineWidth = isPeriphery ? 2.5 : 1.5;
+
+                // Draw border
+                ctx.strokeStyle = isPeriphery ? colors.peripheryColor : colors.vertexStroke;
+                ctx.lineWidth = isPeriphery ? 2 : 1;
                 ctx.stroke();
-                
-                // Draw vertex label
-                ctx.fillStyle = colorState.textColor;
-                ctx.font = `${Math.max(12, Math.min(16, vertexRadius * 0.8))}px Arial`;
+
+                // Draw label
+                ctx.fillStyle = colors.textColor;
+                ctx.font = '12px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
-                if (viewState.showIndex) {
+
+                if (view.showIndex) {
                     ctx.fillText(vertex.id + 1, vertex.x, vertex.y);
                 } else {
                     ctx.fillText(vertex.color + 1, vertex.x, vertex.y);
                 }
             }
-            
+
             ctx.restore();
         }
-        
-        // Initialize the application
-        function init() {
-            resizeCanvas();
-            setupEventListeners();
-            updateStatus('Ready to start. Press "S" to create initial triangle.');
-            
-            // Initialize modals
-            goToModal.addEventListener('click', (e) => {
-                if (e.target === goToModal) {
-                    hideModal(goToModal);
+
+        // Check if an edge is part of the periphery
+        function isEdgeInPeriphery(v1, v2) {
+            const p = graph.periphery;
+
+            for (let i = 0; i < p.length; i++) {
+                const curr = p[i];
+                const next = p[(i + 1) % p.length];
+
+                if ((curr === v1 && next === v2) || (curr === v2 && next === v1)) {
+                    return true;
                 }
-            });
-            
-            colorModal.addEventListener('click', (e) => {
-                if (e.target === colorModal) {
-                    hideModal(colorModal);
-                }
-            });
-            
-            // Add keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (document.activeElement.tagName === 'INPUT') {
-                    return; // Don't trigger shortcuts when typing in input fields
-                }
-                
-                switch (e.key.toLowerCase()) {
-                    case 's': 
-                        if (!startBtn.disabled) startGraph(); 
-                        break;
-                    case 'r': 
-                        if (!randomBtn.disabled) addRandomVertex(); 
-                        break;
-                    case 'a': 
-                        if (!addBtn.disabled) startAddVertex(); 
-                        break;
-                    case 'g': 
-                        if (!goToBtn.disabled) showGoToDialog(); 
-                        break;
-                    case 'c': 
-                        if (!centerBtn.disabled) centerGraph(); 
-                        break;
-                    case 't': 
-                        if (!toggleBtn.disabled) toggleDisplay(); 
-                        break;
-                    case 'escape':
-                        if (selectionState.mode !== 'none') {
-                            selectionState.mode = 'none';
-                            selectionState.selectedVertices = [];
-                            selectionState.firstVertex = null;
-                            selectionState.secondVertex = null;
-                            updateStatus('Selection canceled.');
-                            updateSelectionInfo();
-                            draw();
-                        }
-                        break;
-                }
-            });
+            }
+
+            return false;
         }
-        
-        // Start the application
-        init();
+
+        // Initialize the application
+        window.addEventListener('load', init);
     </script>
 </body>
+
 </html>
