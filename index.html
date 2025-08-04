@@ -104,20 +104,23 @@
             flex: 1;
             position: relative;
             overflow: hidden;
-            background-color: white;
+            background-color: #f9f9f9;
             background-image:
                 linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
             background-size: 20px 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         canvas {
             position: absolute;
-            cursor: grab;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="black" stroke-width="2"><path d="M8,8 L14,14 M8,24 L14,18 M24,8 L18,14 M24,24 L18,18"/></svg>') 10 10, grab;
         }
 
         canvas:active {
-            cursor: grabbing;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 32 32" fill="none" stroke="black" stroke-width="3"><path d="M8,8 L14,14 M8,24 L14,18 M24,8 L18,14 M24,24 L18,18"/></svg>') 10 10, grabbing;
         }
 
         .side-panel {
