@@ -904,16 +904,16 @@
                 });
             }
 
-           // Replace the old showLoading function with this one
+         
             function showLoading(show, message = 'Processing...', isUpdate = false) {
                 if (show) {
                     if (Swal.isVisible() && isUpdate) {
-                        // If a modal is already visible and this is an update, just change the title
+                      
                         Swal.update({
                             title: message
                         });
                     } else if (!Swal.isVisible()) {
-                        // Otherwise, if no modal is visible, create a new one
+                       
                         Swal.fire({
                             title: message,
                             allowOutsideClick: false,
@@ -925,7 +925,7 @@
                         });
                     }
                 } else {
-                    // Close any open modal
+                   
                     Swal.close();
                 }
             }
