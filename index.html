@@ -1406,23 +1406,39 @@
                 return Math.acos(cosAngle);
             }
 
+            // Replace the old function with this new, smarter version
             function calculateCurveControlPoint(v1, v2) {
                 const midX = (v1.x + v2.x) / 2;
                 const midY = (v1.y + v2.y) / 2;
-
-                const dx = v2.x - v1.x;
-                const dy = v2.y - v1.y;
-                const len = Math.sqrt(dx * dx + dy * dy);
+                const len = calculateDistance(v1, v2);
 
                 if (len === 0) return { x: midX, y: midY };
 
-                const perpX = -dy / len;
-                const perpY = dx / len;
+                // Get the overall center of the graph
+                const graphCenter = calculateGraphCenter();
+
+                // Calculate a vector from the graph's center to the edge's midpoint
+                let vecX = midX - graphCenter.x;
+                let vecY = midY - graphCenter.y;
+                const vecLen = Math.sqrt(vecX * vecX + vecY * vecY);
+
+                // If the midpoint is on the center, use the old perpendicular method as a fallback
+                if (vecLen < 1) {
+                    vecX = -(v2.y - v1.y);
+                    vecY = v2.x - v1.x;
+                }
+
+                // Normalize the vector (make its length 1)
+                const normX = vecX / vecLen;
+                const normY = vecY / vecLen;
+
+                // The amount to bow outwards is a factor of the edge length
                 const curveAmount = len * CONFIG.CURVE_FACTOR;
 
+                // The new control point is pushed away from the graph's center
                 return {
-                    x: midX + perpX * curveAmount,
-                    y: midY + perpY * curveAmount
+                    x: midX + normX * curveAmount,
+                    y: midY + normY * curveAmount
                 };
             }
 
