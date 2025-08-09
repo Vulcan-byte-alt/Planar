@@ -660,6 +660,7 @@
                 VERTEX_BASE_RADIUS: 20,
                 MIN_VERTEX_RADIUS: 15,
                 MAX_VERTEX_RADIUS: 40,
+                LOD_VERTEX_COUNT_THRESHOLD: 50,
                 INITIAL_TRIANGLE_SIZE: 250,
                 ZOOM_FACTOR: 1.1,
                 MAX_VERTICES: 10000,
@@ -684,12 +685,13 @@
                 GLOBAL_RELAXATION_ITERATIONS: 5,
                 RELAXATION_TEMPERATURE: 0.3,
                 POSITION_QUALITY_WEIGHTS: {
+                    insideness: 50000, 
                     overlap: 2500,           // Doubled from 1000
                     minDistance: 1200,       // Doubled from 500
                     angleQuality: 1500,      // 5x increase from 300
                     edgeLengthVariance: 200,
                     peripheryDistance: 100,
-                    vertexEdgeDistance: 1200,
+                    vertexEdgeDistance: 5000,
                     curveOverlap: 450
                 },
 
@@ -879,6 +881,15 @@
             // UTILITY FUNCTIONS
             // ===================================================================
 
+            function debounce(func, delay) {
+                let timeout;
+                return function (...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+
             function log(message, data = null) {
                 console.log(`[${new Date().toLocaleTimeString()}] ${message}`, data || '');
             }
@@ -965,7 +976,7 @@
                 stage.add(edgeLayer);
                 stage.add(vertexLayer);
 
-                // Setup zoom
+               // REPLACE THE OLD BLOCK WITH THIS ONE
                 stage.on('wheel', (e) => {
                     e.evt.preventDefault();
 
@@ -989,7 +1000,9 @@
                     };
 
                     stage.position(newPos);
-                    stage.batchDraw();
+
+                    // This direct call ensures the logic always runs correctly.
+                    draw();
                 });
 
                 // Update coordinates on mouse move
@@ -1003,6 +1016,7 @@
 
                 log('Konva initialized successfully');
             }
+
 
             // OPTIMIZED VERTEX POSITION UPDATE - NO RECREATION
             function updateVertexPositions() {
@@ -1061,130 +1075,115 @@
 
             function drawVertices() {
                 const processedIds = new Set();
+                const currentScale = stage.scaleX();
 
                 for (const vertex of graph.vertices) {
                     if (vertex.id > view.maxVisibleVertex) continue;
-
                     processedIds.add(vertex.id);
 
-                    const isSelected = selection.vertices.includes(vertex.id);
-                    const isPeriphery = graph.periphery.includes(vertex.id);
-                    const radius = getVertexRadius(vertex.id);
+                    const group = konvaShapes.vertices[vertex.id];
+                    const dataRadius = getVertexRadius(vertex.id);
+                    const onScreenRadius = dataRadius * currentScale;
 
-                    let fillColor;
-                    if (isSelected) {
-                        fillColor = colors.selectedColor;
-                    } else if (view.showIndex) {
-                        fillColor = colors.vertexColors[0];
-                    } else {
-                        fillColor = colors.vertexColors[(vertex.color - 1) % colors.vertexColors.length];
-                    }
+                    // This is now the ONLY rule for detail level.
+                    const isDetailed = graph.vertices.length < CONFIG.LOD_VERTEX_COUNT_THRESHOLD || onScreenRadius >= 8.0;
 
-                    if (konvaShapes.vertices[vertex.id]) {
+                    if (group) {
                         // UPDATE EXISTING VERTEX
-                        const group = konvaShapes.vertices[vertex.id];
+                        group.visible(true); // Always ensure the group is visible
                         group.position({ x: vertex.x, y: vertex.y });
 
                         const circle = group.findOne('Circle');
-                        if (circle) {
-                            circle.radius(radius);
+                        const text = group.findOne('Text');
+                        const isSelected = selection.vertices.includes(vertex.id);
+                        const isPeriphery = graph.periphery.includes(vertex.id);
+
+                        let fillColor;
+                        if (isSelected) { fillColor = colors.selectedColor; }
+                        else if (view.showIndex) { fillColor = colors.vertexColors[0]; }
+                        else { fillColor = colors.vertexColors[(vertex.color - 1) % colors.vertexColors.length]; }
+
+                        if (isDetailed) {
+                            // Restore to Full Detail
+                            circle.radius(dataRadius);
                             circle.fill(fillColor);
                             circle.stroke(isPeriphery ? colors.peripheryColor : colors.vertexBorderColor);
                             circle.strokeWidth(isPeriphery ? 3 : 2);
-                        }
+                            circle.shadowEnabled(true);
 
-                        const text = group.findOne('Text');
-                        if (text) {
                             const label = view.showIndex ? (vertex.id + 1).toString() : vertex.color.toString();
-                            const fontSize = Math.max(10, Math.min(18, radius * 0.65));
+                            const fontSize = Math.max(10, Math.min(18, dataRadius * 0.65));
+                            text.visible(true);
                             text.text(label);
                             text.fontSize(fontSize);
                             text.offsetY(fontSize / 2);
                             text.offsetX(text.width() / 2);
+                        } else {
+                            // Simplify to a Dot
+                            const dotPixelRadius = 2;
+                            circle.radius(dotPixelRadius / currentScale);
+                            circle.fill(fillColor);
+                            circle.strokeWidth(0);
+                            circle.shadowEnabled(false);
+                            text.visible(false);
                         }
 
                         const highlight = group.findOne('.highlight');
                         if (isSelected && !highlight) {
-                            const newHighlight = new Konva.Circle({
-                                radius: radius + 8,
-                                stroke: colors.selectedColor,
-                                strokeWidth: 3,
-                                dash: [5, 5],
-                                name: 'highlight'
-                            });
-                            group.add(newHighlight);
+                            group.add(new Konva.Circle({ radius: dataRadius + 8, stroke: colors.selectedColor, strokeWidth: 3, dash: [5, 5], name: 'highlight' }));
                         } else if (!isSelected && highlight) {
                             highlight.destroy();
                         } else if (isSelected && highlight) {
-                            highlight.radius(radius + 8);
+                            highlight.radius(dataRadius + 8);
                         }
 
                     } else {
                         // CREATE NEW VERTEX
-                        const group = new Konva.Group({
-                            x: vertex.x,
-                            y: vertex.y
-                        });
+                        const isSelected = selection.vertices.includes(vertex.id);
+                        const isPeriphery = graph.periphery.includes(vertex.id);
 
+                        let fillColor;
+                        if (isSelected) { fillColor = colors.selectedColor; }
+                        else if (view.showIndex) { fillColor = colors.vertexColors[0]; }
+                        else { fillColor = colors.vertexColors[(vertex.color - 1) % colors.vertexColors.length]; }
+
+                        const newGroup = new Konva.Group({ x: vertex.x, y: vertex.y });
                         const circle = new Konva.Circle({
-                            radius: radius,
-                            fill: fillColor,
-                            stroke: isPeriphery ? colors.peripheryColor : colors.vertexBorderColor,
-                            strokeWidth: isPeriphery ? 3 : 2,
+                            radius: isDetailed ? dataRadius : (2 / currentScale),
+                            fill: isDetailed ? fillColor : colors.peripheryColor,
+                            stroke: isDetailed ? (isPeriphery ? colors.peripheryColor : colors.vertexBorderColor) : undefined,
+                            strokeWidth: isDetailed ? (isPeriphery ? 3 : 2) : 0,
                             shadowColor: 'rgba(0, 0, 0, 0.25)',
                             shadowBlur: 6,
                             shadowOffsetX: 3,
-                            shadowOffsetY: 3
+                            shadowOffsetY: 3,
+                            shadowEnabled: isDetailed
                         });
-
                         const label = view.showIndex ? (vertex.id + 1).toString() : vertex.color.toString();
-                        const fontSize = Math.max(10, Math.min(18, radius * 0.65));
+                        const fontSize = Math.max(10, Math.min(18, dataRadius * 0.65));
                         const text = new Konva.Text({
-                            text: label,
-                            fontSize: fontSize,
-                            fontFamily: 'Arial',
-                            fontStyle: 'bold',
-                            fill: colors.textColor,
-                            align: 'center',
-                            verticalAlign: 'middle',
-                            offsetX: 0,
-                            offsetY: fontSize / 2
+                            text: label, fontSize: fontSize, fontFamily: 'Arial', fontStyle: 'bold', fill: colors.textColor,
+                            align: 'center', verticalAlign: 'middle', offsetX: 0, offsetY: fontSize / 2, visible: isDetailed
                         });
-
                         text.offsetX(text.width() / 2);
 
-                        group.add(circle);
-                        group.add(text);
+                        newGroup.add(circle);
+                        newGroup.add(text);
 
                         if (isSelected) {
-                            const highlight = new Konva.Circle({
-                                radius: radius + 8,
-                                stroke: colors.selectedColor,
-                                strokeWidth: 3,
-                                dash: [5, 5],
-                                name: 'highlight'
-                            });
-                            group.add(highlight);
+                            newGroup.add(new Konva.Circle({ radius: dataRadius + 8, stroke: colors.selectedColor, strokeWidth: 3, dash: [5, 5], name: 'highlight' }));
                         }
 
-                        group.on('mousedown', () => {
-                            handleVertexClick(vertex.id);
-                        });
+                        newGroup.on('mousedown', () => handleVertexClick(vertex.id));
+                        newGroup.on('mouseenter', () => { document.body.style.cursor = 'pointer'; });
+                        newGroup.on('mouseleave', () => { document.body.style.cursor = 'default'; });
 
-                        group.on('mouseenter', () => {
-                            document.body.style.cursor = 'pointer';
-                        });
-
-                        group.on('mouseleave', () => {
-                            document.body.style.cursor = 'default';
-                        });
-
-                        vertexLayer.add(group);
-                        konvaShapes.vertices[vertex.id] = group;
+                        vertexLayer.add(newGroup);
+                        konvaShapes.vertices[vertex.id] = newGroup;
                     }
                 }
 
-                // Remove shapes for vertices that no longer exist or are not visible
+                // Cleanup logic
                 for (const id in konvaShapes.vertices) {
                     if (!processedIds.has(parseInt(id))) {
                         konvaShapes.vertices[id].destroy();
@@ -1361,9 +1360,21 @@
                 }
             }
 
+
             // ===================================================================
             // CORE GEOMETRIC FUNCTIONS
             // ===================================================================
+
+            function isPointInTriangle(point, t1, t2, t3) {
+                const d1 = (point.x - t2.x) * (t1.y - t2.y) - (t1.x - t2.x) * (point.y - t2.y);
+                const d2 = (point.x - t3.x) * (t2.y - t3.y) - (t2.x - t3.x) * (point.y - t3.y);
+                const d3 = (point.x - t1.x) * (t3.y - t1.y) - (t3.x - t1.x) * (point.y - t1.y);
+
+                const hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+                const hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+                return !(hasNeg && hasPos);
+            }
 
             function doEdgesCross(x1, y1, x2, y2, x3, y3, x4, y4) {
                 const dx1 = x2 - x1;
@@ -1678,17 +1689,34 @@
 
                 Matter.Composite.add(physicsEngine.world, constraints);
 
-                // Add repulsion forces between all vertices
                 Matter.Events.on(physicsEngine, 'beforeUpdate', function () {
                     for (let i = 0; i < bodies.length; i++) {
-                        if (bodies[i].isStatic) continue;
+                        const bodyA = bodies[i];
+                        if (bodyA.isStatic) continue;
 
-                        for (let j = i + 1; j < bodies.length; j++) {
-                            if (bodies[j].isStatic) continue;
+                        // OPTIMIZATION: Define a search area around the current vertex
+                        const searchRadius = CONFIG.MIN_VERTEX_DISTANCE * 3;
+                        const searchArea = {
+                            x: bodyA.position.x - searchRadius,
+                            y: bodyA.position.y - searchRadius,
+                            width: searchRadius * 2,
+                            height: searchRadius * 2
+                        };
 
-                            const force = calculateRepulsionForce(bodies[i], bodies[j]);
-                            Matter.Body.applyForce(bodies[i], bodies[i].position, force.a);
-                            Matter.Body.applyForce(bodies[j], bodies[j].position, force.b);
+                        // Query the QuadTree to get only nearby vertices
+                        const nearbyVertices = quadTree.query(searchArea);
+
+                        // Now, only apply repulsion with these nearby vertices
+                        for (const vertexB of nearbyVertices) {
+                            const bodyB = bodies[vertexB.id];
+                            if (!bodyB || bodyA.id === bodyB.id || bodyB.isStatic) continue;
+
+                            // To avoid double-counting, only apply if bodyA has a smaller id
+                            if (bodyA.id < bodyB.id) {
+                                const force = calculateRepulsionForce(bodyA, bodyB);
+                                Matter.Body.applyForce(bodyA, bodyA.position, force.a);
+                                Matter.Body.applyForce(bodyB, bodyB.position, force.b);
+                            }
                         }
                     }
                 });
@@ -1813,11 +1841,27 @@
             // ===================================================================
             // ENHANCED SMART PLACEMENT SYSTEM WITH IMPROVED WEIGHTS
             // ===================================================================
+            
+            function calculateInsidenessPenalty(position) {
+                for (const face of graph.faces) {
+                    if (face.length === 3) {
+                        const t1 = graph.vertices[face[0]];
+                        const t2 = graph.vertices[face[1]];
+                        const t3 = graph.vertices[face[2]];
+                        if (isPointInTriangle(position, t1, t2, t3)) {
+                            return 1; 
+                        }
+                    }
+                }
+                return 0; 
+            }
 
             function evaluatePositionQuality(position, connectedVertices, newVertexId) {
                 let score = 0;
                 const weights = CONFIG.POSITION_QUALITY_WEIGHTS;
 
+                score -= calculateInsidenessPenalty(position) * weights.insideness;
+                
                 const overlapPenalty = calculateOverlapPenalty(position, newVertexId);
                 score -= overlapPenalty * weights.overlap;
 
@@ -1933,21 +1977,34 @@
             function calculateVertexEdgeDistancePenalty(position, newVertexId) {
                 let penalty = 0;
                 const newRadius = getVertexRadius(newVertexId);
-                const safetyMargin = CONFIG.VERTEX_EDGE_SAFETY_MARGIN + newRadius; // Add vertex radius to margin
+                const safetyMargin = CONFIG.VERTEX_EDGE_SAFETY_MARGIN + newRadius;
 
-                for (const edge of graph.edges) {
+                // OPTIMIZATION: Define a search area and query the QuadTree
+                const searchRadius = CONFIG.MAX_EDGE_LENGTH;
+                const searchArea = {
+                    x: position.x - searchRadius,
+                    y: position.y - searchRadius,
+                    width: searchRadius * 2,
+                    height: searchRadius * 2
+                };
+                const nearbyVertices = quadTree.query(searchArea);
+                const nearbyVertexIds = new Set(nearbyVertices.map(v => v.id));
+
+                // Create a list of nearby edges to check
+                const nearbyEdges = graph.edges.filter(edge =>
+                    nearbyVertexIds.has(edge.v1) || nearbyVertexIds.has(edge.v2)
+                );
+
+                for (const edge of nearbyEdges) { // Loop over the smaller list
                     const segmentStart = graph.vertices[edge.v1];
                     const segmentEnd = graph.vertices[edge.v2];
-
                     const distance = pointToSegmentDistance(position, segmentStart, segmentEnd);
 
                     if (distance < safetyMargin) {
                         const violationAmount = safetyMargin - distance;
-
                         penalty += Math.pow(violationAmount / safetyMargin, 3) * 1000;
                     }
                 }
-
                 return penalty;
             }
 
@@ -2224,27 +2281,35 @@
                     throw new Error('Cannot select the same vertex twice');
                 }
 
-                let path1 = [];
-                let path2 = [];
+                // --- START OF NEW LOGIC ---
 
-                if (vpIdx < vqIdx) {
-                    path1 = periphery.slice(vpIdx, vqIdx + 1);
-                } else {
-                    path1 = [...periphery.slice(vpIdx), ...periphery.slice(0, vqIdx + 1)];
-                }
+                // We assume the periphery array is already in a consistent clockwise order.
+                // To ensure the path is always clockwise, we always traverse the array
+                // from the smaller index to the larger index.
 
-                if (vpIdx < vqIdx) {
-                    path2 = [...periphery.slice(0, vpIdx + 1).reverse(),
-                    ...periphery.slice(vqIdx).reverse()];
-                } else {
-                    path2 = periphery.slice(vqIdx, vpIdx + 1).reverse();
-                }
+                const startIdx = Math.min(vpIdx, vqIdx);
+                const endIdx = Math.max(vpIdx, vqIdx);
 
-                let result = path1;
+                // This path will now always be the segment that follows the array's
+                // clockwise order, regardless of which vertex was clicked first.
+                const clockwisePath = periphery.slice(startIdx, endIdx + 1);
 
-                if (result.length < 2) {
+                if (clockwisePath.length < 2) {
                     throw new Error('Selection must include at least 2 vertices (m > 1 constraint)');
                 }
+
+                // This is the alternative, counter-clockwise path. We calculate it here
+                // primarily to check for very large selections.
+                const counterClockwisePath = [
+                    ...periphery.slice(endIdx),
+                    ...periphery.slice(0, startIdx + 1)
+                ];
+
+                // This logic is to prevent selecting almost the entire graph, which can
+                // lead to poor graph structures. We choose the shorter of the two paths.
+                // This resolves the "shortest way" problem by making it a deliberate,
+                // consistent choice to avoid problematic selections.
+                const result = clockwisePath.length <= counterClockwisePath.length ? clockwisePath : counterClockwisePath;
 
                 const selectionPercentage = result.length / periphery.length;
                 if (periphery.length > 6 && selectionPercentage > 0.8) {
@@ -2257,6 +2322,7 @@
                 }
 
                 return result;
+                // --- END OF NEW LOGIC ---
             }
 
             function updatePeriphery(removedVertices, newVertexId) {
@@ -2764,7 +2830,7 @@
                         log('Error in exhaustive census random vertex addition', error);
                         showAlert(error.message, 'error');
                     } finally {
-                        showLoading(false);
+                        //showLoading(false);
                     }
                 }, 10);
             }
@@ -2838,12 +2904,12 @@
                     updateSelectionInfo();
                     draw();
                 } finally {
-                    showLoading(false);
+                    //showLoading(false);
                 }
             }
 
             function proceedWithPlacement(position, newVertexId, connectedVertices, successMessage) {
-                showLoading(true, 'Placing vertex...');
+                //showLoading(true, 'Placing vertex...');
 
                 const newVertex = addVertex(position.x, position.y);
                 triangulateAfterAddition(newVertex.id, connectedVertices);
@@ -2877,7 +2943,7 @@
                     method: successMessage
                 });
 
-                showLoading(false);
+                //showLoading(false);
             }
 
             // FIXED redrawGraph with deterministic layout
