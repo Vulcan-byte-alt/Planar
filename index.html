@@ -666,14 +666,14 @@
                 MIN_ANGLE_THRESHOLD: Math.PI / 4, // Improved from PI/3 to PI/4 for better angular resolution
                 MIN_EDGE_LENGTH: 60,
                 MAX_EDGE_LENGTH: 300,
-                MIN_VERTEX_DISTANCE: 80, // Increased from 50 for better spacing
+                MIN_VERTEX_DISTANCE: 100,
                 CURVE_FACTOR: 0.15,
                 REDRAW_ANGLE_THRESHOLD: Math.PI / 3,
                 EDGE_LENGTH_TOLERANCE: 0.2,
                 CONVEX_HULL_EPSILON: 1e-9,
-                OVERLAP_SAFETY_MARGIN: 25, // Increased from 20
+                OVERLAP_SAFETY_MARGIN: 35,
                 MIN_SELECTION_ANGLE: Math.PI / 6,
-                VERTEX_EDGE_SAFETY_MARGIN: 15,
+                VERTEX_EDGE_SAFETY_MARGIN: 35,
 
                 // Smart placement configuration - IMPROVED WEIGHTS
                 CANDIDATE_POSITIONS: 24,
@@ -684,12 +684,12 @@
                 GLOBAL_RELAXATION_ITERATIONS: 5,
                 RELAXATION_TEMPERATURE: 0.3,
                 POSITION_QUALITY_WEIGHTS: {
-                    overlap: 2000,           // Doubled from 1000
-                    minDistance: 1000,       // Doubled from 500
+                    overlap: 2500,           // Doubled from 1000
+                    minDistance: 1200,       // Doubled from 500
                     angleQuality: 1500,      // 5x increase from 300
                     edgeLengthVariance: 200,
                     peripheryDistance: 100,
-                    vertexEdgeDistance: 400,
+                    vertexEdgeDistance: 1200,
                     curveOverlap: 450
                 },
 
@@ -904,16 +904,16 @@
                 });
             }
 
-         
+
             function showLoading(show, message = 'Processing...', isUpdate = false) {
                 if (show) {
                     if (Swal.isVisible() && isUpdate) {
-                      
+
                         Swal.update({
                             title: message
                         });
                     } else if (!Swal.isVisible()) {
-                       
+
                         Swal.fire({
                             title: message,
                             allowOutsideClick: false,
@@ -925,7 +925,7 @@
                         });
                     }
                 } else {
-                   
+
                     Swal.close();
                 }
             }
@@ -1406,7 +1406,7 @@
                 return Math.acos(cosAngle);
             }
 
-          
+
             function calculateCurveControlPoint(v1, v2) {
                 const midX = (v1.x + v2.x) / 2;
                 const midY = (v1.y + v2.y) / 2;
@@ -1414,28 +1414,28 @@
 
                 if (len === 0) return { x: midX, y: midY };
 
-               
+
                 const graphCenter = calculateGraphCenter();
 
-             
+
                 let vecX = midX - graphCenter.x;
                 let vecY = midY - graphCenter.y;
                 const vecLen = Math.sqrt(vecX * vecX + vecY * vecY);
 
-               
+
                 if (vecLen < 1) {
                     vecX = -(v2.y - v1.y);
                     vecY = v2.x - v1.x;
                 }
 
-            
+
                 const normX = vecX / vecLen;
                 const normY = vecY / vecLen;
 
-               
+
                 const curveAmount = len * CONFIG.CURVE_FACTOR;
 
-                
+
                 return {
                     x: midX + normX * curveAmount,
                     y: midY + normY * curveAmount
@@ -1932,7 +1932,8 @@
 
             function calculateVertexEdgeDistancePenalty(position, newVertexId) {
                 let penalty = 0;
-                const safetyMargin = CONFIG.VERTEX_EDGE_SAFETY_MARGIN;
+                const newRadius = getVertexRadius(newVertexId);
+                const safetyMargin = CONFIG.VERTEX_EDGE_SAFETY_MARGIN + newRadius; // Add vertex radius to margin
 
                 for (const edge of graph.edges) {
                     const segmentStart = graph.vertices[edge.v1];
@@ -1942,7 +1943,8 @@
 
                     if (distance < safetyMargin) {
                         const violationAmount = safetyMargin - distance;
-                        penalty += Math.pow(violationAmount / safetyMargin, 2);
+
+                        penalty += Math.pow(violationAmount / safetyMargin, 3) * 1000;
                     }
                 }
 
@@ -2238,7 +2240,7 @@
                     path2 = periphery.slice(vqIdx, vpIdx + 1).reverse();
                 }
 
-                let result = path1.length <= path2.length ? path1 : path2;
+                let result = path1;
 
                 if (result.length < 2) {
                     throw new Error('Selection must include at least 2 vertices (m > 1 constraint)');
@@ -2341,10 +2343,11 @@
                 const outwardNormal = calculateOutwardNormal(connectedVertices);
 
                 const baseDist = calculateTargetDistance(connectedVertices);
-                let growthFactor = 1.2;
 
+                // MODERATE outward placement (not nuclear)
+                let growthFactor = 1.8;  // Reasonable outward push
                 if (graph.vertices.length > 4) {
-                    growthFactor = 1.3 + (graph.vertices.length - 4) * 0.05;
+                    growthFactor = 2.2 + (graph.vertices.length - 4) * 0.08;
                 }
 
                 const targetDistance = baseDist * growthFactor;
@@ -2393,7 +2396,15 @@
                 const toCenterX = graphCenter.x - segmentCenter.x;
                 const toCenterY = graphCenter.y - segmentCenter.y;
 
+
                 if (normalX * toCenterX + normalY * toCenterY > 0) {
+                    normalX = -normalX;
+                    normalY = -normalY;
+                }
+
+
+                const dotProduct = normalX * (segmentCenter.x - graphCenter.x) + normalY * (segmentCenter.y - graphCenter.y);
+                if (dotProduct < 0) {
                     normalX = -normalX;
                     normalY = -normalY;
                 }
@@ -2439,1472 +2450,1479 @@
             }
 
             function calculateTargetDistance(connectedVertices) {
-                 let totalLength = 0;
-                            let edgeCount = 0;
+                let totalLength = 0;
+                let edgeCount = 0;
 
-                            for (let i = 0; i < graph.periphery.length; i++) {
-                                const v1 = graph.periphery[i];
-                                const v2 = graph.periphery[(i + 1) % graph.periphery.length];
-                                const edge1 = graph.vertices[v1];
-                                const edge2 = graph.vertices[v2];
-                                totalLength += calculateDistance(edge1, edge2);
-                                edgeCount++;
-                            }
+                for (let i = 0; i < graph.periphery.length; i++) {
+                    const v1 = graph.periphery[i];
+                    const v2 = graph.periphery[(i + 1) % graph.periphery.length];
+                    const edge1 = graph.vertices[v1];
+                    const edge2 = graph.vertices[v2];
+                    totalLength += calculateDistance(edge1, edge2);
+                    edgeCount++;
+                }
 
-                            const avgPeripheryLength = edgeCount > 0 ? totalLength / edgeCount : CONFIG.MIN_EDGE_LENGTH;
+                const avgPeripheryLength = edgeCount > 0 ? totalLength / edgeCount : CONFIG.MIN_EDGE_LENGTH;
 
-                            const maxRadius = Math.max(...connectedVertices.map(id => getVertexRadius(id)));
-                            const newRadius = getVertexRadius(graph.vertices.length);
-                            const minRequired = (maxRadius + newRadius) * 2 + CONFIG.OVERLAP_SAFETY_MARGIN;
+                const maxRadius = Math.max(...connectedVertices.map(id => getVertexRadius(id)));
+                const newRadius = getVertexRadius(graph.vertices.length);
+                const minRequired = (maxRadius + newRadius) * 2 + CONFIG.OVERLAP_SAFETY_MARGIN;
 
-                            return Math.max(minRequired,
-                                Math.max(CONFIG.MIN_EDGE_LENGTH,
-                                    Math.min(CONFIG.MAX_EDGE_LENGTH, avgPeripheryLength)));
-                        }
+                return Math.max(minRequired,
+                    Math.max(CONFIG.MIN_EDGE_LENGTH,
+                        Math.min(CONFIG.MAX_EDGE_LENGTH, avgPeripheryLength)));
+            }
 
-                        function triangulateAfterAddition(newVertexId, connectedVertices) {
-                            const newVertex = graph.vertices[newVertexId];
+            function triangulateAfterAddition(newVertexId, connectedVertices) {
+                const newVertex = graph.vertices[newVertexId];
 
-                            const middleIdx = Math.floor(connectedVertices.length / 2);
+                for (const vId of connectedVertices) {
+                    if (!edgeExists(newVertexId, vId)) {
+                        addEdge(newVertexId, vId);
+                    }
+                }
 
-                            const sortedByDistance = connectedVertices
-                                .map((vId, idx) => ({
-                                    id: vId,
-                                    originalIdx: idx,
-                                    distance: calculateDistance(newVertex, graph.vertices[vId]),
-                                    isMiddle: idx === middleIdx
-                                }))
-                                .sort((a, b) => {
-                                    if (a.isMiddle) return -1;
-                                    if (b.isMiddle) return 1;
-                                    return a.distance - b.distance;
-                                });
+                const middleIdx = Math.floor(connectedVertices.length / 2);
 
-                            for (const vertex of sortedByDistance) {
-                                addEdge(newVertexId, vertex.id);
-                            }
+                const sortedByDistance = connectedVertices
+                    .map((vId, idx) => ({
+                        id: vId,
+                        originalIdx: idx,
+                        distance: calculateDistance(newVertex, graph.vertices[vId]),
+                        isMiddle: idx === middleIdx
+                    }))
+                    .sort((a, b) => {
+                        if (a.isMiddle) return -1;
+                        if (b.isMiddle) return 1;
+                        return a.distance - b.distance;
+                    });
 
-                            for (let i = 0; i < connectedVertices.length - 1; i++) {
-                                const v1 = connectedVertices[i];
-                                const v2 = connectedVertices[i + 1];
+                for (const vertex of sortedByDistance) {
+                    addEdge(newVertexId, vertex.id);
+                }
 
-                                if (!edgeExists(v1, v2)) {
-                                    addEdge(v1, v2);
-                                }
-                            }
+                for (let i = 0; i < connectedVertices.length - 1; i++) {
+                    const v1 = connectedVertices[i];
+                    const v2 = connectedVertices[i + 1];
 
-                            detectFaces();
-                        }
+                    if (!edgeExists(v1, v2)) {
+                        addEdge(v1, v2);
+                    }
+                }
 
-                        function checkVpVqAngle(vpId, vqId) {
-                            const vp = graph.vertices[vpId];
-                            const vq = graph.vertices[vqId];
-                            const center = calculateGraphCenter();
+                detectFaces();
+            }
 
-                            const angle = calculateAngle(vp, center, vq);
+            function checkVpVqAngle(vpId, vqId) {
+                const vp = graph.vertices[vpId];
+                const vq = graph.vertices[vqId];
+                const center = calculateGraphCenter();
 
-                            if (angle < Math.PI / 6) {
-                                throw new Error('Selected angle is too narrow. Choose wider range.');
-                            }
+                const angle = calculateAngle(vp, center, vq);
 
+                if (angle < Math.PI / 6) {
+                    throw new Error('Selected angle is too narrow. Choose wider range.');
+                }
+
+                return true;
+            }
+
+            function wouldCreateCrossing(newVertex, connectedVertices) {
+                for (let i = 0; i < connectedVertices.length; i++) {
+                    const v1 = connectedVertices[i];
+                    const v1Pos = graph.vertices[v1];
+
+                    for (const edge of graph.edges) {
+                        if (edge.v1 === v1 || edge.v2 === v1) continue;
+
+                        const v2Pos = graph.vertices[edge.v1];
+                        const v3Pos = graph.vertices[edge.v2];
+
+                        if (doEdgesCross(newVertex.x, newVertex.y, v1Pos.x, v1Pos.y,
+                            v2Pos.x, v2Pos.y, v3Pos.x, v3Pos.y)) {
                             return true;
                         }
+                    }
+                }
+                return false;
+            }
 
-                        function wouldCreateCrossing(newVertex, connectedVertices) {
-                            for (let i = 0; i < connectedVertices.length; i++) {
-                                const v1 = connectedVertices[i];
-                                const v1Pos = graph.vertices[v1];
+            function wouldCreateOverlap(newVertex) {
+                for (let id = 0; id < graph.vertices.length; id++) {
+                    const existing = graph.vertices[id];
+                    const dist = calculateDistance(newVertex, existing);
 
-                                for (const edge of graph.edges) {
-                                    if (edge.v1 === v1 || edge.v2 === v1) continue;
+                    const newVertexRadius = getVertexRadius(graph.vertices.length);
+                    const existingRadius = getVertexRadius(id);
 
-                                    const v2Pos = graph.vertices[edge.v1];
-                                    const v3Pos = graph.vertices[edge.v2];
+                    const safetyMargin = graph.vertices.length <= 6 ? 15 : CONFIG.OVERLAP_SAFETY_MARGIN;
+                    const minAllowedDist = newVertexRadius + existingRadius + safetyMargin;
 
-                                    if (doEdgesCross(newVertex.x, newVertex.y, v1Pos.x, v1Pos.y,
-                                        v2Pos.x, v2Pos.y, v3Pos.x, v3Pos.y)) {
-                                        return true;
-                                    }
-                                }
-                            }
-                            return false;
-                        }
+                    if (dist < minAllowedDist) {
+                        return true;
+                    }
+                }
+                return false;
+            }
 
-                        function wouldCreateOverlap(newVertex) {
-                            for (let id = 0; id < graph.vertices.length; id++) {
-                                const existing = graph.vertices[id];
-                                const dist = calculateDistance(newVertex, existing);
+            function calculateAverageTargetEdgeLength() {
+                if (graph.edgeLengths.size === 0) {
+                    return (CONFIG.MIN_EDGE_LENGTH + CONFIG.MAX_EDGE_LENGTH) / 2;
+                }
 
-                                const newVertexRadius = getVertexRadius(graph.vertices.length);
-                                const existingRadius = getVertexRadius(id);
+                let total = 0;
+                let count = 0;
 
-                                const safetyMargin = graph.vertices.length <= 6 ? 15 : CONFIG.OVERLAP_SAFETY_MARGIN;
-                                const minAllowedDist = newVertexRadius + existingRadius + safetyMargin;
+                for (const length of graph.edgeLengths.values()) {
+                    total += length;
+                    count++;
+                }
 
-                                if (dist < minAllowedDist) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
+                return total / count;
+            }
 
-                        function calculateAverageTargetEdgeLength() {
-                            if (graph.edgeLengths.size === 0) {
-                                return (CONFIG.MIN_EDGE_LENGTH + CONFIG.MAX_EDGE_LENGTH) / 2;
-                            }
+            function updateStoredEdgeLengths() {
+                graph.edgeLengths.clear();
 
-                            let total = 0;
-                            let count = 0;
+                for (const edge of graph.edges) {
+                    const length = calculateDistance(graph.vertices[edge.v1], graph.vertices[edge.v2]);
+                    const key = `${Math.min(edge.v1, edge.v2)}-${Math.max(edge.v1, edge.v2)}`;
+                    graph.edgeLengths.set(key, length);
+                }
+            }
 
-                            for (const length of graph.edgeLengths.values()) {
-                                total += length;
-                                count++;
-                            }
+            // ===================================================================
+            // MAIN GRAPH OPERATIONS
+            // ===================================================================
 
-                            return total / count;
-                        }
+            function startGraph() {
+                graph = {
+                    vertices: [],
+                    edges: [],
+                    faces: [],
+                    periphery: [],
+                    adjacencyMatrix: null,
+                    edgeLengths: new Map()
+                };
 
-                        function updateStoredEdgeLengths() {
-                            graph.edgeLengths.clear();
+                // Reset physics if active
+                if (physicsRunner) {
+                    Matter.Runner.stop(physicsRunner);
+                    physicsRunner = null;
+                }
+                if (physicsEngine) {
+                    Matter.Engine.clear(physicsEngine);
+                    physicsEngine = null;
+                }
 
-                            for (const edge of graph.edges) {
-                                const length = calculateDistance(graph.vertices[edge.v1], graph.vertices[edge.v2]);
-                                const key = `${Math.min(edge.v1, edge.v2)}-${Math.max(edge.v1, edge.v2)}`;
-                                graph.edgeLengths.set(key, length);
-                            }
-                        }
+                const centerX = stage.width() / 2;
+                const centerY = stage.height() / 2;
 
-                        // ===================================================================
-                        // MAIN GRAPH OPERATIONS
-                        // ===================================================================
+                const triangleRadius = CONFIG.INITIAL_TRIANGLE_SIZE;
 
-                        function startGraph() {
-                            graph = {
-                                vertices: [],
-                                edges: [],
-                                faces: [],
-                                periphery: [],
-                                adjacencyMatrix: null,
-                                edgeLengths: new Map()
-                            };
+                const v1 = addVertex(centerX, centerY - triangleRadius);
+                const v2 = addVertex(
+                    centerX - triangleRadius * Math.cos(Math.PI / 6),
+                    centerY + triangleRadius * Math.sin(Math.PI / 6)
+                );
+                const v3 = addVertex(
+                    centerX + triangleRadius * Math.cos(Math.PI / 6),
+                    centerY + triangleRadius * Math.sin(Math.PI / 6)
+                );
 
-                            // Reset physics if active
-                            if (physicsRunner) {
-                                Matter.Runner.stop(physicsRunner);
-                                physicsRunner = null;
-                            }
-                            if (physicsEngine) {
-                                Matter.Engine.clear(physicsEngine);
-                                physicsEngine = null;
-                            }
+                addEdge(0, 1);
+                addEdge(1, 2);
+                addEdge(2, 0);
 
-                            const centerX = stage.width() / 2;
-                            const centerY = stage.height() / 2;
+                graph.periphery = [0, 2, 1];
 
-                            const triangleRadius = CONFIG.INITIAL_TRIANGLE_SIZE;
+                updateAdjacencyMatrix();
+                detectFaces();
 
-                            const v1 = addVertex(centerX, centerY - triangleRadius);
-                            const v2 = addVertex(
-                                centerX - triangleRadius * Math.cos(Math.PI / 6),
-                                centerY + triangleRadius * Math.sin(Math.PI / 6)
-                            );
-                            const v3 = addVertex(
-                                centerX + triangleRadius * Math.cos(Math.PI / 6),
-                                centerY + triangleRadius * Math.sin(Math.PI / 6)
-                            );
+                updateStatus('Initial triangle V1-V2-V3 created. Click on any two red vertices to add V4.');
+                updateGraphInfo();
+                enableButtons();
+                centerGraph();
 
-                            addEdge(0, 1);
-                            addEdge(1, 2);
-                            addEdge(2, 0);
+                showAlert('Triangle created! Click two red periphery vertices to add V4', 'success');
+                log('Initial triangle created', {
+                    vertices: 3,
+                    edges: 3,
+                    faces: 1,
+                    triangleRadius: triangleRadius
+                });
 
-                            graph.periphery = [0, 2, 1];
+                draw();
+            }
 
-                            updateAdjacencyMatrix();
-                            detectFaces();
+            function startAddVertex() {
+                if (graph.periphery.length < 2) {
+                    showAlert('Need at least 2 vertices in periphery', 'error');
+                    return;
+                }
 
-                            updateStatus('Initial triangle V1-V2-V3 created. Click on any two red vertices to add V4.');
-                            updateGraphInfo();
-                            enableButtons();
-                            centerGraph();
+                if (graph.vertices.length >= CONFIG.MAX_VERTICES) {
+                    showAlert(`Maximum vertex limit of ${CONFIG.MAX_VERTICES} reached`, 'error');
+                    return;
+                }
 
-                            showAlert('Triangle created! Click two red periphery vertices to add V4', 'success');
-                            log('Initial triangle created', {
-                                vertices: 3,
-                                edges: 3,
-                                faces: 1,
-                                triangleRadius: triangleRadius
-                            });
+                selection.mode = 'add';
+                selection.vertices = [];
+                selection.firstVertex = null;
+                selection.secondVertex = null;
 
-                            draw();
-                        }
+                updateStatus('Select first periphery vertex (Vp) - red vertices are on the periphery');
+                updateSelectionInfo();
+                showAlert('Click any two red vertices to select range for new vertex', 'info');
 
-                        function startAddVertex() {
-                            if (graph.periphery.length < 2) {
-                                showAlert('Need at least 2 vertices in periphery', 'error');
-                                return;
-                            }
+                draw();
+                log('Started vertex addition mode');
+            }
 
-                            if (graph.vertices.length >= CONFIG.MAX_VERTICES) {
-                                showAlert(`Maximum vertex limit of ${CONFIG.MAX_VERTICES} reached`, 'error');
-                                return;
-                            }
+            // EXHAUSTIVE CENSUS implementation for addRandomVertex
+            function addRandomVertex() {
+                if (graph.periphery.length < 2) {
+                    showAlert('Need at least 2 vertices in periphery', 'error');
+                    return;
+                }
 
-                            selection.mode = 'add';
-                            selection.vertices = [];
-                            selection.firstVertex = null;
-                            selection.secondVertex = null;
+                if (graph.vertices.length >= CONFIG.MAX_VERTICES) {
+                    showAlert(`Maximum vertex limit of ${CONFIG.MAX_VERTICES} reached`, 'error');
+                    return;
+                }
 
-                            updateStatus('Select first periphery vertex (Vp) - red vertices are on the periphery');
-                            updateSelectionInfo();
-                            showAlert('Click any two red vertices to select range for new vertex', 'info');
+                showLoading(true, 'Exhaustive census: evaluating all periphery pairs...');
 
-                            draw();
-                            log('Started vertex addition mode');
-                        }
+                setTimeout(() => {
+                    try {
+                        const p = graph.periphery;
+                        let validPairs = [];
 
-                        // EXHAUSTIVE CENSUS implementation for addRandomVertex
-                        function addRandomVertex() {
-                            if (graph.periphery.length < 2) {
-                                showAlert('Need at least 2 vertices in periphery', 'error');
-                                return;
-                            }
+                        // EXHAUSTIVE CENSUS: Check all possible pairs
+                        log(`Exhaustive census: checking ${p.length * (p.length - 1) / 2} possible pairs`);
 
-                            if (graph.vertices.length >= CONFIG.MAX_VERTICES) {
-                                showAlert(`Maximum vertex limit of ${CONFIG.MAX_VERTICES} reached`, 'error');
-                                return;
-                            }
+                        for (let i = 0; i < p.length; i++) {
+                            for (let j = i + 1; j < p.length; j++) {
+                                const vp = p[i];
+                                const vq = p[j];
 
-                            showLoading(true, 'Exhaustive census: evaluating all periphery pairs...');
-
-                            setTimeout(() => {
                                 try {
-                                    const p = graph.periphery;
-                                    let validPairs = [];
+                                    checkVpVqAngle(vp, vq);
+                                    const vertices = getVerticesBetween(vp, vq);
 
-                                    // EXHAUSTIVE CENSUS: Check all possible pairs
-                                    log(`Exhaustive census: checking ${p.length * (p.length - 1) / 2} possible pairs`);
+                                    if (vertices.length >= 2 && vertices.length <= Math.max(4, Math.floor(p.length * 0.65))) {
+                                        // Test if we can find a good position
+                                        const basePosition = calculateOptimalPosition(vertices);
+                                        const result = findBestPosition(basePosition, vertices, graph.vertices.length);
 
-                                    for (let i = 0; i < p.length; i++) {
-                                        for (let j = i + 1; j < p.length; j++) {
-                                            const vp = p[i];
-                                            const vq = p[j];
-
-                                            try {
-                                                checkVpVqAngle(vp, vq);
-                                                const vertices = getVerticesBetween(vp, vq);
-
-                                                if (vertices.length >= 2 && vertices.length <= Math.max(3, p.length * 0.6)) {
-                                                    // Test if we can find a good position
-                                                    const basePosition = calculateOptimalPosition(vertices);
-                                                    const result = findBestPosition(basePosition, vertices, graph.vertices.length);
-
-                                                    if (result !== null) {
-                                                        validPairs.push({
-                                                            vp, vq,
-                                                            vertices,
-                                                            score: result.score,
-                                                            selectionSize: vertices.length
-                                                        });
-                                                    }
-                                                }
-                                            } catch (e) {
-                                                // Invalid pair, skip
-                                                continue;
-                                            }
+                                        if (result !== null) {
+                                            validPairs.push({
+                                                vp, vq,
+                                                vertices,
+                                                score: result.score,
+                                                selectionSize: vertices.length
+                                            });
                                         }
                                     }
-
-                                    log(`Exhaustive census complete: found ${validPairs.length} valid pairs`);
-
-                                    if (validPairs.length === 0) {
-                                        throw new Error(`No valid vertex placement found after exhaustive census of ${p.length * (p.length - 1) / 2} pairs. The graph may be too dense. Try using "Fix Graph" first.`);
-                                    }
-
-                                    // Sort by score and selection size preference
-                                    validPairs.sort((a, b) => {
-                                        // Prefer smaller selections with higher scores
-                                        const scoreWeightA = a.score - a.selectionSize * 5;
-                                        const scoreWeightB = b.score - b.selectionSize * 5;
-                                        return scoreWeightB - scoreWeightA;
-                                    });
-
-                                    // Pick from top candidates randomly
-                                    const topCandidates = validPairs.slice(0, Math.min(5, validPairs.length));
-                                    const selected = topCandidates[Math.floor(Math.random() * topCandidates.length)];
-
-                                    log('Random selection from exhaustive census', {
-                                        totalValid: validPairs.length,
-                                        selected: {
-                                            vp: selected.vp + 1,
-                                            vq: selected.vq + 1,
-                                            score: selected.score.toFixed(2),
-                                            selectionSize: selected.selectionSize
-                                        }
-                                    });
-
-                                    addNewVertex(selected.vp, selected.vq);
-
-                                } catch (error) {
-                                    log('Error in exhaustive census random vertex addition', error);
-                                    showAlert(error.message, 'error');
-                                } finally {
-                                    showLoading(false);
+                                } catch (e) {
+                                    // Invalid pair, skip
+                                    continue;
                                 }
-                            }, 10);
+                            }
                         }
 
-                        // UNBREAKABLE VETO and VETO, REDRAW, RETRY implementation
-                        function addNewVertex(vpId, vqId) {
-                            try {
-                                log('Adding new vertex with Voronoi-based placement + Unbreakable Veto', { vp: vpId + 1, vq: vqId + 1 });
+                        log(`Exhaustive census complete: found ${validPairs.length} valid pairs`);
 
-                                if (!graph.periphery.includes(vpId) || !graph.periphery.includes(vqId)) {
-                                    throw new Error('Selected vertices must be on the periphery');
-                                }
+                        if (validPairs.length === 0) {
+                            throw new Error(`No valid vertex placement found after exhaustive census of ${p.length * (p.length - 1) / 2} pairs. The graph may be too dense. Try using "Fix Graph" first.`);
+                        }
 
-                                if (vpId === vqId) {
-                                    throw new Error('Must select two different vertices');
-                                }
+                        validPairs.sort((a, b) => {
+                            // HEAVILY favor larger selections
+                            const scoreA = a.score + (a.selectionSize * 50); // Big bonus for size
+                            const scoreB = b.score + (b.selectionSize * 50);
+                            return scoreB - scoreA;
+                        });
 
-                                const vp = graph.vertices[vpId];
-                                const vq = graph.vertices[vqId];
-                                const angle = calculateAngle(vp, calculateGraphCenter(), vq);
-                                if (angle < Math.PI / 8) {
-                                    throw new Error('Selected angle is too narrow. Choose vertices further apart.');
-                                }
+                        // Pick from top candidates randomly
+                        const topCandidates = validPairs.slice(0, Math.min(5, validPairs.length));
+                        const selected = topCandidates[Math.floor(Math.random() * topCandidates.length)];
 
-                                const connectedVertices = getVerticesBetween(vpId, vqId);
-                                log('Connected vertices', connectedVertices.map(id => id + 1));
+                        log('Random selection from exhaustive census', {
+                            totalValid: validPairs.length,
+                            selected: {
+                                vp: selected.vp + 1,
+                                vq: selected.vq + 1,
+                                score: selected.score.toFixed(2),
+                                selectionSize: selected.selectionSize
+                            }
+                        });
 
-                                showLoading(true, 'Evaluating Voronoi-based optimal position...');
+                        addNewVertex(selected.vp, selected.vq);
 
-                                const basePosition = calculateOptimalPosition(connectedVertices);
-                                const newVertexId = graph.vertices.length;
+                    } catch (error) {
+                        log('Error in exhaustive census random vertex addition', error);
+                        showAlert(error.message, 'error');
+                    } finally {
+                        showLoading(false);
+                    }
+                }, 10);
+            }
 
-                                const result = findBestPosition(basePosition, connectedVertices, newVertexId);
+            // UNBREAKABLE VETO and VETO, REDRAW, RETRY implementation
+            function addNewVertex(vpId, vqId) {
+                try {
+                    log('Adding new vertex with Voronoi-based placement + Unbreakable Veto', { vp: vpId + 1, vq: vqId + 1 });
 
-                                // UNBREAKABLE VETO: Check if placement failed
-                                if (result === null) {
-                                    log('UNBREAKABLE VETO triggered - no acceptable position found');
-                                    showLoading(true, 'VETO: Redrawing graph and retrying...');
+                    if (!graph.periphery.includes(vpId) || !graph.periphery.includes(vqId)) {
+                        throw new Error('Selected vertices must be on the periphery');
+                    }
 
-                                    // VETO, REDRAW, RETRY sequence
-                                    redrawGraph(true);
+                    if (vpId === vqId) {
+                        throw new Error('Must select two different vertices');
+                    }
 
-                                    setTimeout(() => {
-                                        // Retry after redraw
-                                        const newBasePosition = calculateOptimalPosition(connectedVertices);
-                                        const retryResult = findBestPosition(newBasePosition, connectedVertices, newVertexId);
+                    const vp = graph.vertices[vpId];
+                    const vq = graph.vertices[vqId];
+                    const angle = calculateAngle(vp, calculateGraphCenter(), vq);
+                    if (angle < Math.PI / 8) {
+                        throw new Error('Selected angle is too narrow. Choose vertices further apart.');
+                    }
 
-                                        if (retryResult === null) {
-                                            showLoading(false);
-                                            throw new Error('VETO, REDRAW, RETRY sequence failed. Graph is too constrained for safe placement. Try manual selection or further layout optimization.');
+                    const connectedVertices = getVerticesBetween(vpId, vqId);
+                    log('Connected vertices', connectedVertices.map(id => id + 1));
+
+                    showLoading(true, 'Evaluating Voronoi-based optimal position...');
+
+                    const basePosition = calculateOptimalPosition(connectedVertices);
+                    const newVertexId = graph.vertices.length;
+
+                    const result = findBestPosition(basePosition, connectedVertices, newVertexId);
+
+                    // UNBREAKABLE VETO: Check if placement failed
+                    if (result === null) {
+                        log('UNBREAKABLE VETO triggered - no acceptable position found');
+                        showLoading(true, 'VETO: Redrawing graph and retrying...');
+
+                        // VETO, REDRAW, RETRY sequence
+                        redrawGraph(true);
+
+                        setTimeout(() => {
+                            // Retry after redraw
+                            const newBasePosition = calculateOptimalPosition(connectedVertices);
+                            const retryResult = findBestPosition(newBasePosition, connectedVertices, newVertexId);
+
+                            if (retryResult === null) {
+                                showLoading(false);
+                                throw new Error('VETO, REDRAW, RETRY sequence failed. Graph is too constrained for safe placement. Try manual selection or further layout optimization.');
+                            }
+
+                            // Proceed with retry result
+                            proceedWithPlacement(retryResult.position, newVertexId, connectedVertices, 'VETO-REDRAW-RETRY successful');
+                        }, 500);
+
+                        return;
+                    }
+
+                    // Proceed with normal placement
+                    proceedWithPlacement(result.position, newVertexId, connectedVertices, 'Voronoi placement successful');
+
+                } catch (error) {
+                    log('Error adding vertex', error);
+                    showAlert('Error: ' + error.message, 'error');
+
+                    selection.mode = 'none';
+                    selection.vertices = [];
+                    selection.firstVertex = null;
+                    selection.secondVertex = null;
+                    updateSelectionInfo();
+                    draw();
+                } finally {
+                    showLoading(false);
+                }
+            }
+
+            function proceedWithPlacement(position, newVertexId, connectedVertices, successMessage) {
+                showLoading(true, 'Placing vertex...');
+
+                const newVertex = addVertex(position.x, position.y);
+                triangulateAfterAddition(newVertex.id, connectedVertices);
+                updatePeriphery(connectedVertices, newVertex.id);
+                graph.periphery = findConvexHull();
+
+                updateAdjacencyMatrix();
+                updateQuadTree();
+                detectFaces();
+
+                updateGraphInfo();
+                updateStatus(`Vertex V${newVertex.id + 1} added successfully`);
+
+                selection.mode = 'none';
+                selection.vertices = [];
+                selection.firstVertex = null;
+                selection.secondVertex = null;
+                updateSelectionInfo();
+
+                draw();
+
+                centerGraph();
+
+                showAlert(`Vertex V${newVertex.id + 1} added - ${successMessage}`, 'success');
+
+                log('Vertex addition completed', {
+                    newVertex: newVertex.id + 1,
+                    totalVertices: graph.vertices.length,
+                    totalEdges: graph.edges.length,
+                    totalFaces: graph.faces.length,
+                    method: successMessage
+                });
+
+                showLoading(false);
+            }
+
+            // FIXED redrawGraph with deterministic layout
+            function redrawGraph(silent = false) {
+                if (graph.vertices.length <= 3) {
+                    if (!silent) showAlert('Need more than 3 vertices to redraw', 'info');
+                    return;
+                }
+
+                if (!silent) showLoading(true, 'Redrawing graph for better layout...');
+
+                setTimeout(() => {
+                    try {
+                        log('Redrawing graph', { vertices: graph.vertices.length });
+
+                        graph.periphery = findConvexHull();
+                        log('Convex hull recalculated', { peripherySize: graph.periphery.length });
+
+                        const center = calculateGraphCenter();
+
+                        const maxRadius = Math.max(...graph.vertices.map(v => getVertexRadius(v.id)));
+                        let safeDistance = maxRadius * 3 + 50;
+
+                        let radiusMultiplier = 2.0;
+                        if (graph.vertices.length > 4) {
+                            radiusMultiplier = 3.0 + (graph.vertices.length - 4) * 0.15;
+                        }
+                        if (graph.vertices.length > 10) {
+                            radiusMultiplier = 6.0 + (graph.vertices.length - 10) * 0.08;
+                        }
+
+                        const minCircumference = safeDistance * graph.periphery.length * radiusMultiplier;
+                        const radius = Math.max(minCircumference / (2 * Math.PI), 400);
+
+                        log(`Using radius: ${radius}, multiplier: ${radiusMultiplier}`);
+
+                        const angleStep = (2 * Math.PI) / graph.periphery.length;
+
+                        // Position periphery vertices in a perfect circle
+                        for (let i = 0; i < graph.periphery.length; i++) {
+                            const id = graph.periphery[i];
+                            const angle = i * angleStep - Math.PI / 2;
+
+                            graph.vertices[id].x = center.x + radius * Math.cos(angle);
+                            graph.vertices[id].y = center.y + radius * Math.sin(angle);
+                        }
+
+                        // Use force-directed approach for internal vertices
+                        const internalVertices = graph.vertices.filter(v => !graph.periphery.includes(v.id));
+
+                        if (internalVertices.length > 0) {
+                            // Position internal vertices using spring forces
+                            for (let iteration = 0; iteration < 100; iteration++) {
+                                for (const vertex of internalVertices) {
+                                    let forceX = 0;
+                                    let forceY = 0;
+
+                                    // Spring forces from connected vertices
+                                    const neighbors = getNeighbors(vertex.id);
+                                    for (const neighborId of neighbors) {
+                                        const neighbor = graph.vertices[neighborId];
+                                        const dx = neighbor.x - vertex.x;
+                                        const dy = neighbor.y - vertex.y;
+                                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                        if (distance > 0) {
+                                            const targetDistance = CONFIG.MIN_EDGE_LENGTH * 1.5;
+                                            const force = (distance - targetDistance) * 0.01;
+                                            forceX += (dx / distance) * force;
+                                            forceY += (dy / distance) * force;
                                         }
+                                    }
 
-                                        // Proceed with retry result
-                                        proceedWithPlacement(retryResult.position, newVertexId, connectedVertices, 'VETO-REDRAW-RETRY successful');
-                                    }, 500);
+                                    // Repulsion from all vertices
+                                    for (const other of graph.vertices) {
+                                        if (other.id === vertex.id) continue;
 
-                                    return;
+                                        const dx = vertex.x - other.x;
+                                        const dy = vertex.y - other.y;
+                                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                        if (distance > 0 && distance < CONFIG.MIN_VERTEX_DISTANCE * 2) {
+                                            const force = CONFIG.MIN_VERTEX_DISTANCE * 2 / (distance * distance);
+                                            forceX += (dx / distance) * force;
+                                            forceY += (dy / distance) * force;
+                                        }
+                                    }
+
+                                    // Apply forces
+                                    vertex.x += forceX;
+                                    vertex.y += forceY;
                                 }
+                            }
+                        }
 
-                                // Proceed with normal placement
-                                proceedWithPlacement(result.position, newVertexId, connectedVertices, 'Voronoi placement successful');
+                        // Check for overlaps and expand if necessary
+                        let overlaps = findAllOverlaps();
+                        let expansionAttempts = 0;
 
-                            } catch (error) {
-                                log('Error adding vertex', error);
-                                showAlert('Error: ' + error.message, 'error');
+                        while (overlaps.length > 0 && expansionAttempts < 5) {
+                            expansionAttempts++;
+                            expandGraphLayout(1.2);
+                            overlaps = findAllOverlaps();
+                        }
 
-                                selection.mode = 'none';
-                                selection.vertices = [];
-                                selection.firstVertex = null;
-                                selection.secondVertex = null;
+                        updateStoredEdgeLengths();
+                        updateQuadTree();
+
+                        if (!silent) {
+                            centerGraph();
+                        } else {
+                            draw();
+                        }
+
+                        if (!silent) {
+                            showAlert('Graph layout improved successfully', 'success');
+                        }
+
+                        log('Graph redraw completed', {
+                            finalRadius: radius,
+                            overlapsRemaining: findAllOverlaps().length,
+                            expansionAttempts
+                        });
+
+                    } catch (error) {
+                        log('Error redrawing graph', error);
+                        if (!silent) showAlert('Error redrawing graph', 'error');
+                    } finally {
+                        if (!silent) showLoading(false);
+                    }
+                }, 10);
+            }
+
+            // ===================================================================
+            // VALIDATION & ERROR CHECKING
+            // ===================================================================
+
+            function validateGraph() {
+                showLoading(true, 'Validating graph structure...');
+
+                setTimeout(() => {
+                    try {
+                        const issues = [];
+
+                        for (const edge of graph.edges) {
+                            if (edge.v1 >= graph.vertices.length || edge.v2 >= graph.vertices.length ||
+                                edge.v1 < 0 || edge.v2 < 0) {
+                                issues.push(`Invalid edge: V${edge.v1 + 1}-V${edge.v2 + 1}`);
+                            }
+                        }
+
+                        for (const id of graph.periphery) {
+                            if (id >= graph.vertices.length || id < 0) {
+                                issues.push(`Invalid periphery vertex: V${id + 1}`);
+                            }
+                        }
+
+                        if (graph.periphery.length < 3) {
+                            issues.push('Periphery must have at least 3 vertices');
+                        }
+
+                        for (let i = 0; i < graph.periphery.length; i++) {
+                            const v1 = graph.periphery[i];
+                            const v2 = graph.periphery[(i + 1) % graph.periphery.length];
+
+                            if (!edgeExists(v1, v2)) {
+                                issues.push(`Missing periphery edge: V${v1 + 1}-V${v2 + 1}`);
+                            }
+                        }
+
+                        const crossings = findAllCrossings();
+                        if (crossings.length > 0) {
+                            issues.push(`Found ${crossings.length} edge crossings (non-planar!)`);
+                            for (const crossing of crossings.slice(0, 5)) {
+                                issues.push(`  Edge V${crossing.edge1.v1 + 1}-V${crossing.edge1.v2 + 1} crosses V${crossing.edge2.v1 + 1}-V${crossing.edge2.v2 + 1}`);
+                            }
+                        }
+
+                        const overlaps = findAllOverlaps();
+                        if (overlaps.length > 0) {
+                            issues.push(`Found ${overlaps.length} vertex overlaps`);
+                            for (const overlap of overlaps.slice(0, 3)) {
+                                issues.push(`  V${overlap.v1 + 1} overlaps with V${overlap.v2 + 1} (distance: ${overlap.distance.toFixed(1)})`);
+                            }
+                        }
+
+                        for (const vertex of graph.vertices) {
+                            const degree = getNeighbors(vertex.id).length;
+                            if (degree < 2 && graph.vertices.length > 3) {
+                                issues.push(`V${vertex.id + 1} has degree ${degree} (should be ≥ 2)`);
+                            }
+                        }
+
+                        let nonTriangularFaces = 0;
+                        for (const face of graph.faces) {
+                            if (face.length !== 3) {
+                                nonTriangularFaces++;
+                            }
+                        }
+                        if (nonTriangularFaces > 0) {
+                            issues.push(`Found ${nonTriangularFaces} non-triangular faces`);
+                        }
+
+                        const regularityScore = checkGraphRegularity();
+                        if (regularityScore < 0.7) {
+                            issues.push(`Graph regularity score: ${(regularityScore * 100).toFixed(1)}% (should be > 70%)`);
+                        }
+
+                        displayValidationResults(issues);
+
+                    } catch (error) {
+                        log('Error during validation', error);
+                        showAlert('Validation error: ' + error.message, 'error');
+                    } finally {
+                        showLoading(false);
+                    }
+                }, 10);
+            }
+
+            function checkGraphRegularity() {
+                const edgeLengths = [];
+
+                for (const edge of graph.edges) {
+                    const length = calculateDistance(graph.vertices[edge.v1], graph.vertices[edge.v2]);
+                    edgeLengths.push(length);
+                }
+
+                if (edgeLengths.length === 0) return 1;
+
+                const avgLength = edgeLengths.reduce((a, b) => a + b, 0) / edgeLengths.length;
+                const variance = edgeLengths.reduce((sum, len) =>
+                    sum + Math.pow(len - avgLength, 2), 0) / edgeLengths.length;
+                const stdDev = Math.sqrt(variance);
+
+                const cv = stdDev / avgLength;
+                return Math.max(0, 1 - cv);
+            }
+
+            function findAllCrossings() {
+                const crossings = [];
+
+                for (let i = 0; i < graph.edges.length; i++) {
+                    const edge1 = graph.edges[i];
+                    const v1 = graph.vertices[edge1.v1];
+                    const v2 = graph.vertices[edge1.v2];
+
+                    for (let j = i + 1; j < graph.edges.length; j++) {
+                        const edge2 = graph.edges[j];
+
+                        if (edge1.v1 === edge2.v1 || edge1.v1 === edge2.v2 ||
+                            edge1.v2 === edge2.v1 || edge1.v2 === edge2.v2) {
+                            continue;
+                        }
+
+                        const v3 = graph.vertices[edge2.v1];
+                        const v4 = graph.vertices[edge2.v2];
+
+                        if (doEdgesCross(v1.x, v1.y, v2.x, v2.y, v3.x, v3.y, v4.x, v4.y)) {
+                            crossings.push({ edge1, edge2 });
+                        }
+                    }
+                }
+
+                return crossings;
+            }
+
+            function findAllOverlaps() {
+                const overlaps = [];
+
+                for (let i = 0; i < graph.vertices.length; i++) {
+                    const v1 = graph.vertices[i];
+
+                    for (let j = i + 1; j < graph.vertices.length; j++) {
+                        const v2 = graph.vertices[j];
+                        const distance = calculateDistance(v1, v2);
+
+                        const r1 = getVertexRadius(i);
+                        const r2 = getVertexRadius(j);
+                        const minAllowedDist = r1 + r2 + 15;
+
+                        if (distance < minAllowedDist) {
+                            overlaps.push({
+                                v1: i, v2: j,
+                                distance,
+                                overlap: minAllowedDist - distance
+                            });
+                        }
+                    }
+                }
+
+                return overlaps;
+            }
+
+            function displayValidationResults(issues) {
+                const debugContent = document.getElementById('debugContent');
+                debugContent.innerHTML = '';
+
+                const result = document.createElement('div');
+                result.className = 'validation-result ' +
+                    (issues.length === 0 ? 'validation-success' : 'validation-error');
+
+                if (issues.length === 0) {
+                    result.innerHTML = '<strong>✓ Graph is valid!</strong>';
+                    result.innerHTML += '<p>All planarity and structure checks passed.</p>';
+                    result.innerHTML += `<p>Vertices: ${graph.vertices.length}, Edges: ${graph.edges.length}, Faces: ${graph.faces.length}</p>`;
+
+                    const regularityScore = checkGraphRegularity();
+                    result.innerHTML += `<p>Regularity score: ${(regularityScore * 100).toFixed(1)}%</p>`;
+
+                    showAlert('Graph is valid and planar', 'success');
+                } else {
+                    result.innerHTML = `<strong>⚠️ Found ${issues.length} issues:</strong>`;
+
+                    const list = document.createElement('ul');
+                    list.className = 'validation-list';
+
+                    issues.forEach(issue => {
+                        const item = document.createElement('li');
+                        item.className = 'validation-item';
+                        item.textContent = issue;
+                        list.appendChild(item);
+                    });
+
+                    result.appendChild(list);
+                    showAlert(`Found ${issues.length} issues`, 'error');
+                }
+
+                debugContent.appendChild(result);
+                debugPanel.classList.add('show');
+            }
+
+            // ===================================================================
+            // USER INTERACTION HANDLING
+            // ===================================================================
+
+            function handleVertexClick(vertexId) {
+                if (selection.mode === 'add') {
+                    if (graph.periphery.includes(vertexId)) {
+                        if (selection.firstVertex === null) {
+                            selection.firstVertex = vertexId;
+                            selection.vertices = [vertexId];
+                            updateStatus('Select second periphery vertex (Vq)');
+                            updateSelectionInfo();
+                            draw();
+                            log('First vertex selected', { id: vertexId + 1 });
+                        } else if (selection.firstVertex !== vertexId) {
+                            try {
+                                const testVertices = getVerticesBetween(selection.firstVertex, vertexId);
+
+                                selection.secondVertex = vertexId;
+                                selection.vertices = [selection.firstVertex, vertexId];
                                 updateSelectionInfo();
                                 draw();
-                            } finally {
-                                showLoading(false);
+
+                                log('Second vertex selected', {
+                                    first: selection.firstVertex + 1,
+                                    second: vertexId + 1,
+                                    connectedCount: testVertices.length
+                                });
+
+                                setTimeout(() => {
+                                    showLoading(true, 'Voronoi-based placement in progress...');
+                                    try {
+                                        addNewVertex(selection.firstVertex, selection.secondVertex);
+                                    } catch (error) {
+                                        log('Error adding vertex', error);
+                                        showLoading(false);
+                                    }
+                                }, 100);
+
+                            } catch (error) {
+                                showAlert('Invalid selection: ' + error.message, 'error');
                             }
+                        } else {
+                            showAlert('Please select a different vertex', 'error');
                         }
+                    } else {
+                        showAlert('Selected vertex must be on the periphery (shown in red)', 'error');
+                    }
+                }
+            }
 
-                        function proceedWithPlacement(position, newVertexId, connectedVertices, successMessage) {
-                            showLoading(true, 'Placing vertex...');
+            // ===================================================================
+            // VIEW OPERATIONS
+            // ===================================================================
 
-                            const newVertex = addVertex(position.x, position.y);
-                            triangulateAfterAddition(newVertex.id, connectedVertices);
-                            updatePeriphery(connectedVertices, newVertex.id);
-                            graph.periphery = findConvexHull();
+            function centerGraph() {
+                if (graph.vertices.length === 0) return;
+
+                let minX = Infinity, minY = Infinity;
+                let maxX = -Infinity, maxY = -Infinity;
+
+                for (const vertex of graph.vertices) {
+                    if (vertex.id > view.maxVisibleVertex) continue;
+
+                    const radius = getVertexRadius(vertex.id);
+                    minX = Math.min(minX, vertex.x - radius);
+                    minY = Math.min(minY, vertex.y - radius);
+                    maxX = Math.max(maxX, vertex.x + radius);
+                    maxY = Math.max(maxY, vertex.y + radius);
+                }
+
+                const graphWidth = maxX - minX + 80;
+                const graphHeight = maxY - minY + 80;
+
+                const scaleX = (stage.width() * 0.85) / graphWidth;
+                const scaleY = (stage.height() * 0.85) / graphHeight;
+                const newScale = Math.min(scaleX, scaleY, 2);
+
+                const centerX = (minX + maxX) / 2;
+                const centerY = (minY + maxY) / 2;
+
+                stage.scale({ x: newScale, y: newScale });
+                stage.position({
+                    x: stage.width() / 2 - centerX * newScale,
+                    y: stage.height() / 2 - centerY * newScale
+                });
+
+                stage.batchDraw();
+                log('Graph centered', { scale: newScale });
+            }
+
+            function zoom(factor) {
+                const oldScale = stage.scaleX();
+                const newScale = Math.max(0.1, Math.min(10, oldScale * factor));
+
+                const center = {
+                    x: stage.width() / 2,
+                    y: stage.height() / 2
+                };
+
+                stage.scale({ x: newScale, y: newScale });
+                stage.position({
+                    x: center.x - (center.x - stage.x()) * factor,
+                    y: center.y - (center.y - stage.y()) * factor
+                });
+
+                stage.batchDraw();
+            }
+
+            function handleGoTo() {
+                const index = parseInt(vertexIndex.value);
+
+                if (isNaN(index) || index < 1 || index > graph.vertices.length) {
+                    showAlert('Please enter a valid vertex number', 'error');
+                    return;
+                }
+
+                view.maxVisibleVertex = index - 1;
+                updateVisibilityText();
+                updateStatus(`Showing vertices V1 through V${index}`);
+                hideModal(goToModal);
+                draw();
+                log('Go to vertex', { maxVisible: index });
+            }
+
+            function updateVisibilityText() {
+                if (view.maxVisibleVertex === Number.MAX_SAFE_INTEGER) {
+                    visibleUpTo.textContent = 'All';
+                } else {
+                    visibleUpTo.textContent = `V${view.maxVisibleVertex + 1}`;
+                }
+            }
+
+            function toggleDisplay() {
+                view.showIndex = !view.showIndex;
+                displayMode.textContent = view.showIndex ? 'Index' : 'Color';
+                updateStatus(`Display mode: ${view.showIndex ? 'Index' : 'Color'}`);
+                draw();
+            }
+
+            function toggleCurvedEdges() {
+                view.showCurvedEdges = !view.showCurvedEdges;
+                curvedStatus.textContent = view.showCurvedEdges ? 'On' : 'Off';
+                updateStatus(`Curved edges: ${view.showCurvedEdges ? 'enabled' : 'disabled'}`);
+
+                // Update UI - toggle active class for the button
+                curveToggleBtn.classList.toggle('active', view.showCurvedEdges);
+
+                // Clear all existing edge shapes and recreate them
+                for (const key in konvaShapes.edges) {
+                    konvaShapes.edges[key].destroy();
+                }
+                konvaShapes.edges = {};
+
+                // Redraw edges with the new settings
+                drawEdges();
+                stage.batchDraw();
+
+                log('Curved edges toggled', { enabled: view.showCurvedEdges });
+            }
+
+            function isEdgeInPeriphery(v1, v2) {
+                const p = graph.periphery;
+                for (let i = 0; i < p.length; i++) {
+                    const curr = p[i];
+                    const next = p[(i + 1) % p.length];
+                    if ((curr === v1 && next === v2) || (curr === v2 && next === v1)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // ===================================================================
+            // UI MANAGEMENT
+            // ===================================================================
+
+            function updateGraphInfo() {
+                vertexCounter.textContent = `Vertices: ${graph.vertices.length}`;
+                vertexCount.textContent = graph.vertices.length;
+                edgeCount.textContent = graph.edges.length;
+                faceCount.textContent = graph.faces.length;
+                peripheryCount.textContent = graph.periphery.length;
+
+                updateVisibilityText();
+                updatePeripheryList();
+                updateSelectionInfo();
+            }
+
+            function updatePeripheryList() {
+                peripheryList.innerHTML = '';
+
+                if (graph.periphery.length === 0) {
+                    const item = document.createElement('div');
+                    item.className = 'vertex-item';
+                    item.textContent = 'No vertices yet';
+                    peripheryList.appendChild(item);
+                } else {
+                    for (const id of graph.periphery) {
+                        const item = document.createElement('div');
+                        item.className = 'vertex-item';
+
+                        const vertex = graph.vertices[id];
+                        const label = document.createElement('span');
+                        label.textContent = `V${id + 1}`;
+                        label.style.fontWeight = selection.vertices.includes(id) ? 'bold' : 'normal';
+                        label.style.color = selection.vertices.includes(id) ? colors.selectedColor : 'inherit';
+
+                        const coords = document.createElement('span');
+                        coords.textContent = `(${Math.round(vertex.x)}, ${Math.round(vertex.y)})`;
+                        coords.style.fontSize = '12px';
+                        coords.style.color = '#888';
+
+                        item.appendChild(label);
+                        item.appendChild(coords);
+                        peripheryList.appendChild(item);
+                    }
+                }
+            }
+
+            function updateSelectionInfo() {
+                if (selection.vertices.length > 0) {
+                    const labels = selection.vertices.map(id => `V${id + 1}`).join(', ');
+                    selectionInfo.innerHTML = `<strong>${labels}</strong>`;
+
+                    if (selection.mode === 'add' && selection.firstVertex !== null && selection.secondVertex === null) {
+                        selectionInfo.innerHTML += ' <em>(select second vertex)</em>';
+                    }
+                } else {
+                    selectionInfo.textContent = 'None';
+                }
+            }
+
+            function enableButtons() {
+                addBtn.disabled = false;
+                randomBtn.disabled = false;
+                goToBtn.disabled = false;
+                zoomInBtn.disabled = false;
+                zoomOutBtn.disabled = false;
+                centerBtn.disabled = false;
+                toggleBtn.disabled = false;
+                redrawBtn.disabled = false;
+                colorBtn.disabled = false;
+                curveToggleBtn.disabled = false;
+            }
+
+            // ===================================================================
+            // MODAL AND UI INTERACTIONS
+            // ===================================================================
+
+            function showModal(modal) {
+                modal.classList.add('show');
+
+                if (modal === goToModal) {
+                    vertexIndex.max = graph.vertices.length;
+                    vertexIndex.placeholder = `1-${graph.vertices.length}`;
+                    vertexIndex.value = view.maxVisibleVertex === Number.MAX_SAFE_INTEGER ?
+                        graph.vertices.length : view.maxVisibleVertex + 1;
+                    vertexIndex.focus();
+                    vertexIndex.select();
+                }
+            }
+
+            function hideModal(modal) {
+                modal.classList.remove('show');
+            }
+
+            function togglePanel() {
+                sidePanel.classList.toggle('collapsed');
+                togglePanelBtn.classList.toggle('collapsed');
+                togglePanelBtn.textContent = sidePanel.classList.contains('collapsed') ? '▶' : '◀';
+            }
+
+            function toggleDebugPanel() {
+                debugPanel.classList.toggle('show');
+            }
+
+            // ===================================================================
+            // COLOR SYSTEM
+            // ===================================================================
+
+            function setupColorPalettes() {
+                const colorSettings = [
+                    { id: 'swatch-color1', property: 'vertexColors', index: 0 },
+                    { id: 'swatch-color2', property: 'vertexColors', index: 1 },
+                    { id: 'swatch-color3', property: 'vertexColors', index: 2 },
+                    { id: 'swatch-color4', property: 'vertexColors', index: 3 },
+                    { id: 'swatch-borderColor', property: 'vertexBorderColor' },
+                    { id: 'swatch-edgeColor', property: 'edgeColor' },
+                    { id: 'swatch-peripheryColor', property: 'peripheryColor' }
+                ];
+
+                for (const config of colorSettings) {
+                    const swatch = document.getElementById(config.id);
+                    if (swatch) {
+                        const color = config.index !== undefined ?
+                            colors[config.property][config.index] :
+                            colors[config.property];
+
+                        swatch.style.backgroundColor = color;
+
+                        swatch.addEventListener('click', () => {
+                            const colorPicker = document.createElement('input');
+                            colorPicker.type = 'color';
+                            colorPicker.style.position = 'absolute';
+                            colorPicker.style.visibility = 'hidden';
+                            colorPicker.value = color;
+
+                            document.body.appendChild(colorPicker);
+
+                            colorPicker.click();
+                            colorPicker.addEventListener('input', (e) => {
+                                const newColor = e.target.value;
+
+                                if (config.index !== undefined) {
+                                    colors[config.property][config.index] = newColor;
+                                } else {
+                                    colors[config.property] = newColor;
+                                }
+
+                                swatch.style.backgroundColor = newColor;
+                                draw();
+                            });
+
+                            colorPicker.addEventListener('change', () => {
+                                document.body.removeChild(colorPicker);
+                            });
+                        });
+                    }
+                }
+
+                log('Color swatch system initialized');
+            }
+
+            function saveColors() {
+                hideModal(colorModal);
+                draw();
+                showAlert('Color settings applied', 'success');
+                log('Colors saved', colors);
+            }
+
+            function resetColors() {
+                colors = JSON.parse(JSON.stringify(defaultColors));
+                setupColorPalettes();
+                draw();
+                showAlert('Colors reset to default', 'info');
+                log('Colors reset to default');
+            }
+
+            // ===================================================================
+            // IMPORT/EXPORT FUNCTIONALITY
+            // ===================================================================
+
+            function exportGraph() {
+                const data = {
+                    version: '2.0',
+                    timestamp: new Date().toISOString(),
+                    graph: {
+                        vertices: graph.vertices,
+                        edges: graph.edges,
+                        periphery: graph.periphery,
+                        faces: graph.faces
+                    },
+                    colors: colors,
+                    metadata: {
+                        totalVertices: graph.vertices.length,
+                        totalEdges: graph.edges.length,
+                        totalFaces: graph.faces.length
+                    }
+                };
+
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `planar_graph_${Date.now()}.json`;
+                a.click();
+
+                URL.revokeObjectURL(url);
+                showAlert('Graph exported successfully', 'success');
+                log('Graph exported', data.metadata);
+            }
+
+            function importGraph() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+
+                input.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+
+                            if (!data.graph || !data.graph.vertices || !data.graph.edges) {
+                                throw new Error('Invalid graph file format');
+                            }
+
+                            graph.vertices = data.graph.vertices;
+                            graph.edges = data.graph.edges;
+                            graph.periphery = data.graph.periphery || [];
+                            graph.faces = data.graph.faces || [];
+                            graph.edgeLengths = new Map();
+
+                            if (data.colors) {
+                                colors = { ...colors, ...data.colors };
+                                setupColorPalettes();
+                            }
 
                             updateAdjacencyMatrix();
                             updateQuadTree();
                             detectFaces();
 
+                            if (graph.periphery.length === 0 && graph.vertices.length >= 3) {
+                                graph.periphery = findConvexHull();
+                            }
+
                             updateGraphInfo();
-                            updateStatus(`Vertex V${newVertex.id + 1} added successfully`);
+                            enableButtons();
+                            centerGraph();
 
-                            selection.mode = 'none';
-                            selection.vertices = [];
-                            selection.firstVertex = null;
-                            selection.secondVertex = null;
-                            updateSelectionInfo();
-
-                            draw();
-
-                            showAlert(`Vertex V${newVertex.id + 1} added - ${successMessage}`, 'success');
-
-                            log('Vertex addition completed', {
-                                newVertex: newVertex.id + 1,
-                                totalVertices: graph.vertices.length,
-                                totalEdges: graph.edges.length,
-                                totalFaces: graph.faces.length,
-                                method: successMessage
+                            showAlert('Graph imported successfully', 'success');
+                            log('Graph imported', {
+                                vertices: graph.vertices.length,
+                                edges: graph.edges.length,
+                                faces: graph.faces.length
                             });
 
-                            showLoading(false);
+                        } catch (error) {
+                            showAlert('Error importing graph: ' + error.message, 'error');
+                            log('Import error', error);
                         }
-
-                        // FIXED redrawGraph with deterministic layout
-                        function redrawGraph(silent = false) {
-                            if (graph.vertices.length <= 3) {
-                                if (!silent) showAlert('Need more than 3 vertices to redraw', 'info');
-                                return;
-                            }
-
-                            if (!silent) showLoading(true, 'Redrawing graph for better layout...');
-
-                            setTimeout(() => {
-                                try {
-                                    log('Redrawing graph', { vertices: graph.vertices.length });
-
-                                    graph.periphery = findConvexHull();
-                                    log('Convex hull recalculated', { peripherySize: graph.periphery.length });
-
-                                    const center = calculateGraphCenter();
-
-                                    const maxRadius = Math.max(...graph.vertices.map(v => getVertexRadius(v.id)));
-                                    let safeDistance = maxRadius * 3 + 50;
-
-                                    let radiusMultiplier = 2.0;
-                                    if (graph.vertices.length > 4) {
-                                        radiusMultiplier = 3.0 + (graph.vertices.length - 4) * 0.15;
-                                    }
-                                    if (graph.vertices.length > 10) {
-                                        radiusMultiplier = 6.0 + (graph.vertices.length - 10) * 0.08;
-                                    }
-
-                                    const minCircumference = safeDistance * graph.periphery.length * radiusMultiplier;
-                                    const radius = Math.max(minCircumference / (2 * Math.PI), 400);
-
-                                    log(`Using radius: ${radius}, multiplier: ${radiusMultiplier}`);
-
-                                    const angleStep = (2 * Math.PI) / graph.periphery.length;
-
-                                    // Position periphery vertices in a perfect circle
-                                    for (let i = 0; i < graph.periphery.length; i++) {
-                                        const id = graph.periphery[i];
-                                        const angle = i * angleStep - Math.PI / 2;
-
-                                        graph.vertices[id].x = center.x + radius * Math.cos(angle);
-                                        graph.vertices[id].y = center.y + radius * Math.sin(angle);
-                                    }
-
-                                    // Use force-directed approach for internal vertices
-                                    const internalVertices = graph.vertices.filter(v => !graph.periphery.includes(v.id));
-
-                                    if (internalVertices.length > 0) {
-                                        // Position internal vertices using spring forces
-                                        for (let iteration = 0; iteration < 100; iteration++) {
-                                            for (const vertex of internalVertices) {
-                                                let forceX = 0;
-                                                let forceY = 0;
-
-                                                // Spring forces from connected vertices
-                                                const neighbors = getNeighbors(vertex.id);
-                                                for (const neighborId of neighbors) {
-                                                    const neighbor = graph.vertices[neighborId];
-                                                    const dx = neighbor.x - vertex.x;
-                                                    const dy = neighbor.y - vertex.y;
-                                                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                                                    if (distance > 0) {
-                                                        const targetDistance = CONFIG.MIN_EDGE_LENGTH * 1.5;
-                                                        const force = (distance - targetDistance) * 0.01;
-                                                        forceX += (dx / distance) * force;
-                                                        forceY += (dy / distance) * force;
-                                                    }
-                                                }
-
-                                                // Repulsion from all vertices
-                                                for (const other of graph.vertices) {
-                                                    if (other.id === vertex.id) continue;
-
-                                                    const dx = vertex.x - other.x;
-                                                    const dy = vertex.y - other.y;
-                                                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                                                    if (distance > 0 && distance < CONFIG.MIN_VERTEX_DISTANCE * 2) {
-                                                        const force = CONFIG.MIN_VERTEX_DISTANCE * 2 / (distance * distance);
-                                                        forceX += (dx / distance) * force;
-                                                        forceY += (dy / distance) * force;
-                                                    }
-                                                }
-
-                                                // Apply forces
-                                                vertex.x += forceX;
-                                                vertex.y += forceY;
-                                            }
-                                        }
-                                    }
-
-                                    // Check for overlaps and expand if necessary
-                                    let overlaps = findAllOverlaps();
-                                    let expansionAttempts = 0;
-
-                                    while (overlaps.length > 0 && expansionAttempts < 5) {
-                                        expansionAttempts++;
-                                        expandGraphLayout(1.2);
-                                        overlaps = findAllOverlaps();
-                                    }
-
-                                    updateStoredEdgeLengths();
-                                    updateQuadTree();
-
-                                    if (!silent) {
-                                        centerGraph();
-                                    } else {
-                                        draw();
-                                    }
-
-                                    if (!silent) {
-                                        showAlert('Graph layout improved successfully', 'success');
-                                    }
-
-                                    log('Graph redraw completed', {
-                                        finalRadius: radius,
-                                        overlapsRemaining: findAllOverlaps().length,
-                                        expansionAttempts
-                                    });
-
-                                } catch (error) {
-                                    log('Error redrawing graph', error);
-                                    if (!silent) showAlert('Error redrawing graph', 'error');
-                                } finally {
-                                    if (!silent) showLoading(false);
-                                }
-                            }, 10);
-                        }
-
-                        // ===================================================================
-                        // VALIDATION & ERROR CHECKING
-                        // ===================================================================
-
-                        function validateGraph() {
-                            showLoading(true, 'Validating graph structure...');
-
-                            setTimeout(() => {
-                                try {
-                                    const issues = [];
-
-                                    for (const edge of graph.edges) {
-                                        if (edge.v1 >= graph.vertices.length || edge.v2 >= graph.vertices.length ||
-                                            edge.v1 < 0 || edge.v2 < 0) {
-                                            issues.push(`Invalid edge: V${edge.v1 + 1}-V${edge.v2 + 1}`);
-                                        }
-                                    }
-
-                                    for (const id of graph.periphery) {
-                                        if (id >= graph.vertices.length || id < 0) {
-                                            issues.push(`Invalid periphery vertex: V${id + 1}`);
-                                        }
-                                    }
-
-                                    if (graph.periphery.length < 3) {
-                                        issues.push('Periphery must have at least 3 vertices');
-                                    }
-
-                                    for (let i = 0; i < graph.periphery.length; i++) {
-                                        const v1 = graph.periphery[i];
-                                        const v2 = graph.periphery[(i + 1) % graph.periphery.length];
-
-                                        if (!edgeExists(v1, v2)) {
-                                            issues.push(`Missing periphery edge: V${v1 + 1}-V${v2 + 1}`);
-                                        }
-                                    }
-
-                                    const crossings = findAllCrossings();
-                                    if (crossings.length > 0) {
-                                        issues.push(`Found ${crossings.length} edge crossings (non-planar!)`);
-                                        for (const crossing of crossings.slice(0, 5)) {
-                                            issues.push(`  Edge V${crossing.edge1.v1 + 1}-V${crossing.edge1.v2 + 1} crosses V${crossing.edge2.v1 + 1}-V${crossing.edge2.v2 + 1}`);
-                                        }
-                                    }
-
-                                    const overlaps = findAllOverlaps();
-                                    if (overlaps.length > 0) {
-                                        issues.push(`Found ${overlaps.length} vertex overlaps`);
-                                        for (const overlap of overlaps.slice(0, 3)) {
-                                            issues.push(`  V${overlap.v1 + 1} overlaps with V${overlap.v2 + 1} (distance: ${overlap.distance.toFixed(1)})`);
-                                        }
-                                    }
-
-                                    for (const vertex of graph.vertices) {
-                                        const degree = getNeighbors(vertex.id).length;
-                                        if (degree < 2 && graph.vertices.length > 3) {
-                                            issues.push(`V${vertex.id + 1} has degree ${degree} (should be ≥ 2)`);
-                                        }
-                                    }
-
-                                    let nonTriangularFaces = 0;
-                                    for (const face of graph.faces) {
-                                        if (face.length !== 3) {
-                                            nonTriangularFaces++;
-                                        }
-                                    }
-                                    if (nonTriangularFaces > 0) {
-                                        issues.push(`Found ${nonTriangularFaces} non-triangular faces`);
-                                    }
-
-                                    const regularityScore = checkGraphRegularity();
-                                    if (regularityScore < 0.7) {
-                                        issues.push(`Graph regularity score: ${(regularityScore * 100).toFixed(1)}% (should be > 70%)`);
-                                    }
-
-                                    displayValidationResults(issues);
-
-                                } catch (error) {
-                                    log('Error during validation', error);
-                                    showAlert('Validation error: ' + error.message, 'error');
-                                } finally {
-                                    showLoading(false);
-                                }
-                            }, 10);
-                        }
-
-                        function checkGraphRegularity() {
-                            const edgeLengths = [];
-
-                            for (const edge of graph.edges) {
-                                const length = calculateDistance(graph.vertices[edge.v1], graph.vertices[edge.v2]);
-                                edgeLengths.push(length);
-                            }
-
-                            if (edgeLengths.length === 0) return 1;
-
-                            const avgLength = edgeLengths.reduce((a, b) => a + b, 0) / edgeLengths.length;
-                            const variance = edgeLengths.reduce((sum, len) =>
-                                sum + Math.pow(len - avgLength, 2), 0) / edgeLengths.length;
-                            const stdDev = Math.sqrt(variance);
-
-                            const cv = stdDev / avgLength;
-                            return Math.max(0, 1 - cv);
-                        }
-
-                        function findAllCrossings() {
-                            const crossings = [];
-
-                            for (let i = 0; i < graph.edges.length; i++) {
-                                const edge1 = graph.edges[i];
-                                const v1 = graph.vertices[edge1.v1];
-                                const v2 = graph.vertices[edge1.v2];
-
-                                for (let j = i + 1; j < graph.edges.length; j++) {
-                                    const edge2 = graph.edges[j];
-
-                                    if (edge1.v1 === edge2.v1 || edge1.v1 === edge2.v2 ||
-                                        edge1.v2 === edge2.v1 || edge1.v2 === edge2.v2) {
-                                        continue;
-                                    }
-
-                                    const v3 = graph.vertices[edge2.v1];
-                                    const v4 = graph.vertices[edge2.v2];
-
-                                    if (doEdgesCross(v1.x, v1.y, v2.x, v2.y, v3.x, v3.y, v4.x, v4.y)) {
-                                        crossings.push({ edge1, edge2 });
-                                    }
-                                }
-                            }
-
-                            return crossings;
-                        }
-
-                        function findAllOverlaps() {
-                            const overlaps = [];
-
-                            for (let i = 0; i < graph.vertices.length; i++) {
-                                const v1 = graph.vertices[i];
-
-                                for (let j = i + 1; j < graph.vertices.length; j++) {
-                                    const v2 = graph.vertices[j];
-                                    const distance = calculateDistance(v1, v2);
-
-                                    const r1 = getVertexRadius(i);
-                                    const r2 = getVertexRadius(j);
-                                    const minAllowedDist = r1 + r2 + 15;
-
-                                    if (distance < minAllowedDist) {
-                                        overlaps.push({
-                                            v1: i, v2: j,
-                                            distance,
-                                            overlap: minAllowedDist - distance
-                                        });
-                                    }
-                                }
-                            }
-
-                            return overlaps;
-                        }
-
-                        function displayValidationResults(issues) {
-                            const debugContent = document.getElementById('debugContent');
-                            debugContent.innerHTML = '';
-
-                            const result = document.createElement('div');
-                            result.className = 'validation-result ' +
-                                (issues.length === 0 ? 'validation-success' : 'validation-error');
-
-                            if (issues.length === 0) {
-                                result.innerHTML = '<strong>✓ Graph is valid!</strong>';
-                                result.innerHTML += '<p>All planarity and structure checks passed.</p>';
-                                result.innerHTML += `<p>Vertices: ${graph.vertices.length}, Edges: ${graph.edges.length}, Faces: ${graph.faces.length}</p>`;
-
-                                const regularityScore = checkGraphRegularity();
-                                result.innerHTML += `<p>Regularity score: ${(regularityScore * 100).toFixed(1)}%</p>`;
-
-                                showAlert('Graph is valid and planar', 'success');
-                            } else {
-                                result.innerHTML = `<strong>⚠️ Found ${issues.length} issues:</strong>`;
-
-                                const list = document.createElement('ul');
-                                list.className = 'validation-list';
-
-                                issues.forEach(issue => {
-                                    const item = document.createElement('li');
-                                    item.className = 'validation-item';
-                                    item.textContent = issue;
-                                    list.appendChild(item);
-                                });
-
-                                result.appendChild(list);
-                                showAlert(`Found ${issues.length} issues`, 'error');
-                            }
-
-                            debugContent.appendChild(result);
-                            debugPanel.classList.add('show');
-                        }
-
-                        // ===================================================================
-                        // USER INTERACTION HANDLING
-                        // ===================================================================
-
-                        function handleVertexClick(vertexId) {
-                            if (selection.mode === 'add') {
-                                if (graph.periphery.includes(vertexId)) {
-                                    if (selection.firstVertex === null) {
-                                        selection.firstVertex = vertexId;
-                                        selection.vertices = [vertexId];
-                                        updateStatus('Select second periphery vertex (Vq)');
-                                        updateSelectionInfo();
-                                        draw();
-                                        log('First vertex selected', { id: vertexId + 1 });
-                                    } else if (selection.firstVertex !== vertexId) {
-                                        try {
-                                            const testVertices = getVerticesBetween(selection.firstVertex, vertexId);
-
-                                            selection.secondVertex = vertexId;
-                                            selection.vertices = [selection.firstVertex, vertexId];
-                                            updateSelectionInfo();
-                                            draw();
-
-                                            log('Second vertex selected', {
-                                                first: selection.firstVertex + 1,
-                                                second: vertexId + 1,
-                                                connectedCount: testVertices.length
-                                            });
-
-                                            setTimeout(() => {
-                                                showLoading(true, 'Voronoi-based placement in progress...');
-                                                try {
-                                                    addNewVertex(selection.firstVertex, selection.secondVertex);
-                                                } catch (error) {
-                                                    log('Error adding vertex', error);
-                                                    showLoading(false);
-                                                }
-                                            }, 100);
-
-                                        } catch (error) {
-                                            showAlert('Invalid selection: ' + error.message, 'error');
-                                        }
-                                    } else {
-                                        showAlert('Please select a different vertex', 'error');
-                                    }
-                                } else {
-                                    showAlert('Selected vertex must be on the periphery (shown in red)', 'error');
-                                }
-                            }
-                        }
-
-                        // ===================================================================
-                        // VIEW OPERATIONS
-                        // ===================================================================
-
-                        function centerGraph() {
-                            if (graph.vertices.length === 0) return;
-
-                            let minX = Infinity, minY = Infinity;
-                            let maxX = -Infinity, maxY = -Infinity;
-
-                            for (const vertex of graph.vertices) {
-                                if (vertex.id > view.maxVisibleVertex) continue;
-
-                                const radius = getVertexRadius(vertex.id);
-                                minX = Math.min(minX, vertex.x - radius);
-                                minY = Math.min(minY, vertex.y - radius);
-                                maxX = Math.max(maxX, vertex.x + radius);
-                                maxY = Math.max(maxY, vertex.y + radius);
-                            }
-
-                            const graphWidth = maxX - minX + 80;
-                            const graphHeight = maxY - minY + 80;
-
-                            const scaleX = (stage.width() * 0.85) / graphWidth;
-                            const scaleY = (stage.height() * 0.85) / graphHeight;
-                            const newScale = Math.min(scaleX, scaleY, 2);
-
-                            const centerX = (minX + maxX) / 2;
-                            const centerY = (minY + maxY) / 2;
-
-                            stage.scale({ x: newScale, y: newScale });
-                            stage.position({
-                                x: stage.width() / 2 - centerX * newScale,
-                                y: stage.height() / 2 - centerY * newScale
-                            });
-
-                            stage.batchDraw();
-                            log('Graph centered', { scale: newScale });
-                        }
-
-                        function zoom(factor) {
-                            const oldScale = stage.scaleX();
-                            const newScale = Math.max(0.1, Math.min(10, oldScale * factor));
-
-                            const center = {
-                                x: stage.width() / 2,
-                                y: stage.height() / 2
-                            };
-
-                            stage.scale({ x: newScale, y: newScale });
-                            stage.position({
-                                x: center.x - (center.x - stage.x()) * factor,
-                                y: center.y - (center.y - stage.y()) * factor
-                            });
-
-                            stage.batchDraw();
-                        }
-
-                        function handleGoTo() {
-                            const index = parseInt(vertexIndex.value);
-
-                            if (isNaN(index) || index < 1 || index > graph.vertices.length) {
-                                showAlert('Please enter a valid vertex number', 'error');
-                                return;
-                            }
-
-                            view.maxVisibleVertex = index - 1;
-                            updateVisibilityText();
-                            updateStatus(`Showing vertices V1 through V${index}`);
-                            hideModal(goToModal);
-                            draw();
-                            log('Go to vertex', { maxVisible: index });
-                        }
-
-                        function updateVisibilityText() {
-                            if (view.maxVisibleVertex === Number.MAX_SAFE_INTEGER) {
-                                visibleUpTo.textContent = 'All';
-                            } else {
-                                visibleUpTo.textContent = `V${view.maxVisibleVertex + 1}`;
-                            }
-                        }
-
-                        function toggleDisplay() {
-                            view.showIndex = !view.showIndex;
-                            displayMode.textContent = view.showIndex ? 'Index' : 'Color';
-                            updateStatus(`Display mode: ${view.showIndex ? 'Index' : 'Color'}`);
-                            draw();
-                        }
-
-                        function toggleCurvedEdges() {
-                            view.showCurvedEdges = !view.showCurvedEdges;
-                            curvedStatus.textContent = view.showCurvedEdges ? 'On' : 'Off';
-                            updateStatus(`Curved edges: ${view.showCurvedEdges ? 'enabled' : 'disabled'}`);
-
-                            // Update UI - toggle active class for the button
-                            curveToggleBtn.classList.toggle('active', view.showCurvedEdges);
-
-                            // Clear all existing edge shapes and recreate them
-                            for (const key in konvaShapes.edges) {
-                                konvaShapes.edges[key].destroy();
-                            }
-                            konvaShapes.edges = {};
-
-                            // Redraw edges with the new settings
-                            drawEdges();
-                            stage.batchDraw();
-
-                            log('Curved edges toggled', { enabled: view.showCurvedEdges });
-                        }
-
-                        function isEdgeInPeriphery(v1, v2) {
-                            const p = graph.periphery;
-                            for (let i = 0; i < p.length; i++) {
-                                const curr = p[i];
-                                const next = p[(i + 1) % p.length];
-                                if ((curr === v1 && next === v2) || (curr === v2 && next === v1)) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-
-                        // ===================================================================
-                        // UI MANAGEMENT
-                        // ===================================================================
-
-                        function updateGraphInfo() {
-                            vertexCounter.textContent = `Vertices: ${graph.vertices.length}`;
-                            vertexCount.textContent = graph.vertices.length;
-                            edgeCount.textContent = graph.edges.length;
-                            faceCount.textContent = graph.faces.length;
-                            peripheryCount.textContent = graph.periphery.length;
-
-                            updateVisibilityText();
-                            updatePeripheryList();
-                            updateSelectionInfo();
-                        }
-
-                        function updatePeripheryList() {
-                            peripheryList.innerHTML = '';
-
-                            if (graph.periphery.length === 0) {
-                                const item = document.createElement('div');
-                                item.className = 'vertex-item';
-                                item.textContent = 'No vertices yet';
-                                peripheryList.appendChild(item);
-                            } else {
-                                for (const id of graph.periphery) {
-                                    const item = document.createElement('div');
-                                    item.className = 'vertex-item';
-
-                                    const vertex = graph.vertices[id];
-                                    const label = document.createElement('span');
-                                    label.textContent = `V${id + 1}`;
-                                    label.style.fontWeight = selection.vertices.includes(id) ? 'bold' : 'normal';
-                                    label.style.color = selection.vertices.includes(id) ? colors.selectedColor : 'inherit';
-
-                                    const coords = document.createElement('span');
-                                    coords.textContent = `(${Math.round(vertex.x)}, ${Math.round(vertex.y)})`;
-                                    coords.style.fontSize = '12px';
-                                    coords.style.color = '#888';
-
-                                    item.appendChild(label);
-                                    item.appendChild(coords);
-                                    peripheryList.appendChild(item);
-                                }
-                            }
-                        }
-
-                        function updateSelectionInfo() {
-                            if (selection.vertices.length > 0) {
-                                const labels = selection.vertices.map(id => `V${id + 1}`).join(', ');
-                                selectionInfo.innerHTML = `<strong>${labels}</strong>`;
-
-                                if (selection.mode === 'add' && selection.firstVertex !== null && selection.secondVertex === null) {
-                                    selectionInfo.innerHTML += ' <em>(select second vertex)</em>';
-                                }
-                            } else {
-                                selectionInfo.textContent = 'None';
-                            }
-                        }
-
-                        function enableButtons() {
-                            addBtn.disabled = false;
-                            randomBtn.disabled = false;
-                            goToBtn.disabled = false;
-                            zoomInBtn.disabled = false;
-                            zoomOutBtn.disabled = false;
-                            centerBtn.disabled = false;
-                            toggleBtn.disabled = false;
-                            redrawBtn.disabled = false;
-                            colorBtn.disabled = false;
-                            curveToggleBtn.disabled = false;
-                        }
-
-                        // ===================================================================
-                        // MODAL AND UI INTERACTIONS
-                        // ===================================================================
-
-                        function showModal(modal) {
-                            modal.classList.add('show');
-
-                            if (modal === goToModal) {
-                                vertexIndex.max = graph.vertices.length;
-                                vertexIndex.placeholder = `1-${graph.vertices.length}`;
-                                vertexIndex.value = view.maxVisibleVertex === Number.MAX_SAFE_INTEGER ?
-                                    graph.vertices.length : view.maxVisibleVertex + 1;
-                                vertexIndex.focus();
-                                vertexIndex.select();
-                            }
-                        }
-
-                        function hideModal(modal) {
-                            modal.classList.remove('show');
-                        }
-
-                        function togglePanel() {
-                            sidePanel.classList.toggle('collapsed');
-                            togglePanelBtn.classList.toggle('collapsed');
-                            togglePanelBtn.textContent = sidePanel.classList.contains('collapsed') ? '▶' : '◀';
-                        }
-
-                        function toggleDebugPanel() {
-                            debugPanel.classList.toggle('show');
-                        }
-
-                        // ===================================================================
-                        // COLOR SYSTEM
-                        // ===================================================================
-
-                        function setupColorPalettes() {
-                            const colorSettings = [
-                                { id: 'swatch-color1', property: 'vertexColors', index: 0 },
-                                { id: 'swatch-color2', property: 'vertexColors', index: 1 },
-                                { id: 'swatch-color3', property: 'vertexColors', index: 2 },
-                                { id: 'swatch-color4', property: 'vertexColors', index: 3 },
-                                { id: 'swatch-borderColor', property: 'vertexBorderColor' },
-                                { id: 'swatch-edgeColor', property: 'edgeColor' },
-                                { id: 'swatch-peripheryColor', property: 'peripheryColor' }
-                            ];
-
-                            for (const config of colorSettings) {
-                                const swatch = document.getElementById(config.id);
-                                if (swatch) {
-                                    const color = config.index !== undefined ?
-                                        colors[config.property][config.index] :
-                                        colors[config.property];
-
-                                    swatch.style.backgroundColor = color;
-
-                                    swatch.addEventListener('click', () => {
-                                        const colorPicker = document.createElement('input');
-                                        colorPicker.type = 'color';
-                                        colorPicker.style.position = 'absolute';
-                                        colorPicker.style.visibility = 'hidden';
-                                        colorPicker.value = color;
-
-                                        document.body.appendChild(colorPicker);
-
-                                        colorPicker.click();
-                                        colorPicker.addEventListener('input', (e) => {
-                                            const newColor = e.target.value;
-
-                                            if (config.index !== undefined) {
-                                                colors[config.property][config.index] = newColor;
-                                            } else {
-                                                colors[config.property] = newColor;
-                                            }
-
-                                            swatch.style.backgroundColor = newColor;
-                                            draw();
-                                        });
-
-                                        colorPicker.addEventListener('change', () => {
-                                            document.body.removeChild(colorPicker);
-                                        });
-                                    });
-                                }
-                            }
-
-                            log('Color swatch system initialized');
-                        }
-
-                        function saveColors() {
-                            hideModal(colorModal);
-                            draw();
-                            showAlert('Color settings applied', 'success');
-                            log('Colors saved', colors);
-                        }
-
-                        function resetColors() {
-                            colors = JSON.parse(JSON.stringify(defaultColors));
-                            setupColorPalettes();
-                            draw();
-                            showAlert('Colors reset to default', 'info');
-                            log('Colors reset to default');
-                        }
-
-                        // ===================================================================
-                        // IMPORT/EXPORT FUNCTIONALITY
-                        // ===================================================================
-
-                        function exportGraph() {
-                            const data = {
-                                version: '2.0',
-                                timestamp: new Date().toISOString(),
-                                graph: {
-                                    vertices: graph.vertices,
-                                    edges: graph.edges,
-                                    periphery: graph.periphery,
-                                    faces: graph.faces
-                                },
-                                colors: colors,
-                                metadata: {
-                                    totalVertices: graph.vertices.length,
-                                    totalEdges: graph.edges.length,
-                                    totalFaces: graph.faces.length
-                                }
-                            };
-
-                            const json = JSON.stringify(data, null, 2);
-                            const blob = new Blob([json], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `planar_graph_${Date.now()}.json`;
-                            a.click();
-
-                            URL.revokeObjectURL(url);
-                            showAlert('Graph exported successfully', 'success');
-                            log('Graph exported', data.metadata);
-                        }
-
-                        function importGraph() {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.accept = '.json';
-
-                            input.addEventListener('change', (e) => {
-                                const file = e.target.files[0];
-                                if (!file) return;
-
-                                const reader = new FileReader();
-                                reader.onload = (event) => {
-                                    try {
-                                        const data = JSON.parse(event.target.result);
-
-                                        if (!data.graph || !data.graph.vertices || !data.graph.edges) {
-                                            throw new Error('Invalid graph file format');
-                                        }
-
-                                        graph.vertices = data.graph.vertices;
-                                        graph.edges = data.graph.edges;
-                                        graph.periphery = data.graph.periphery || [];
-                                        graph.faces = data.graph.faces || [];
-                                        graph.edgeLengths = new Map();
-
-                                        if (data.colors) {
-                                            colors = { ...colors, ...data.colors };
-                                            setupColorPalettes();
-                                        }
-
-                                        updateAdjacencyMatrix();
-                                        updateQuadTree();
-                                        detectFaces();
-
-                                        if (graph.periphery.length === 0 && graph.vertices.length >= 3) {
-                                            graph.periphery = findConvexHull();
-                                        }
-
-                                        updateGraphInfo();
-                                        enableButtons();
-                                        centerGraph();
-
-                                        showAlert('Graph imported successfully', 'success');
-                                        log('Graph imported', {
-                                            vertices: graph.vertices.length,
-                                            edges: graph.edges.length,
-                                            faces: graph.faces.length
-                                        });
-
-                                    } catch (error) {
-                                        showAlert('Error importing graph: ' + error.message, 'error');
-                                        log('Import error', error);
-                                    }
-                                };
-
-                                reader.readAsText(file);
-                            });
-
-                            input.click();
-                        }
-
-                        // ===================================================================
-                        // KEYBOARD SHORTCUTS
-                        // ===================================================================
-
-                        function handleKeyDown(e) {
-                            if (document.activeElement.tagName === 'INPUT') return;
-
-                            if (e.ctrlKey || e.metaKey) {
-                                switch (e.key.toLowerCase()) {
-                                    case 's':
-                                        e.preventDefault();
-                                        exportGraph();
-                                        break;
-                                    case 'o':
-                                        e.preventDefault();
-                                        importGraph();
-                                        break;
-                                }
-                                return;
-                            }
-
-                            switch (e.key.toLowerCase()) {
-                                case 's':
-                                    if (!startBtn.disabled) startGraph();
-                                    break;
-                                case 'a':
-                                    if (!addBtn.disabled) startAddVertex();
-                                    break;
-                                case 'r':
-                                    if (!randomBtn.disabled) addRandomVertex();
-                                    break;
-                                case 'g':
-                                    if (!goToBtn.disabled) showModal(goToModal);
-                                    break;
-                                case 'c':
-                                    if (!centerBtn.disabled) centerGraph();
-                                    break;
-                                case 't':
-                                    if (!toggleBtn.disabled) toggleDisplay();
-                                    break;
-                                case 'z':
-                                    if (e.shiftKey) {
-                                        if (!zoomOutBtn.disabled) zoom(1 / CONFIG.ZOOM_FACTOR);
-                                    } else {
-                                        if (!zoomInBtn.disabled) zoom(CONFIG.ZOOM_FACTOR);
-                                    }
-                                    break;
-                                case '+':
-                                case '=':
-                                    if (!zoomInBtn.disabled) zoom(CONFIG.ZOOM_FACTOR);
-                                    break;
-                                case '-':
-                                case '_':
-                                    if (!zoomOutBtn.disabled) zoom(1 / CONFIG.ZOOM_FACTOR);
-                                    break;
-                                case 'd':
-                                    toggleDebugPanel();
-                                    break;
-                                case 'escape':
-                                    handleEscape();
-                                    break;
-                                case 'v':
-                                    validateGraph();
-                                    break;
-                                case 'f':
-                                    if (e.shiftKey || findAllOverlaps().length > 0 || findAllCrossings().length > 0) {
-                                        fixGraph();
-                                    }
-                                    break;
-                                case 'e':
-                                    if (!curveToggleBtn.disabled) toggleCurvedEdges();
-                                    break;
-                            }
-                        }
-
-                        function handleEscape() {
-                            if (debugPanel.classList.contains('show')) {
-                                debugPanel.classList.remove('show');
-                            } else if (colorModal.classList.contains('show')) {
-                                hideModal(colorModal);
-                            } else if (goToModal.classList.contains('show')) {
-                                hideModal(goToModal);
-                            } else if (selection.mode !== 'none') {
-                                selection.mode = 'none';
-                                selection.vertices = [];
-                                selection.firstVertex = null;
-                                selection.secondVertex = null;
-                                updateStatus('Selection canceled');
-                                updateSelectionInfo();
-                                draw();
-                            }
-                        }
-
-                        // ===================================================================
-                        // INITIALIZATION AND EVENT SETUP
-                        // ===================================================================
-
-                        function init() {
-                            log('Initializing Professional Planar Triangulated Graph Visualizer - FIXED VERSION');
-
-                            initKonva();
-                            setupEventListeners();
-                            setupColorPalettes();
-
-                            updateStatus('Ready to start. Press S or click Start to create initial triangle.');
-                            updateVisibilityText();
-
-                            curvedStatus.textContent = view.showCurvedEdges ? 'On' : 'Off';
-
-                            draw();
-
-                            setTimeout(() => {
-                                showAlert('Fixed Version Ready! All major bugs resolved with Matter.js physics', 'success');
-                            }, 500);
-
-                            log('Fixed application initialized successfully with Matter.js physics engine');
-                        }
-
-                        function resizeCanvas() {
-                            const container = document.getElementById('canvas-container');
-                            if (stage) {
-                                stage.width(container.clientWidth);
-                                stage.height(container.clientHeight);
-                                stage.batchDraw();
-                            }
-                        }
-
-                        function setupEventListeners() {
-                            startBtn.addEventListener('click', startGraph);
-                            addBtn.addEventListener('click', startAddVertex);
-                            randomBtn.addEventListener('click', addRandomVertex);
-                            goToBtn.addEventListener('click', () => showModal(goToModal));
-                            zoomInBtn.addEventListener('click', () => zoom(CONFIG.ZOOM_FACTOR));
-                            zoomOutBtn.addEventListener('click', () => zoom(1 / CONFIG.ZOOM_FACTOR));
-                            centerBtn.addEventListener('click', centerGraph);
-                            toggleBtn.addEventListener('click', toggleDisplay);
-                            redrawBtn.addEventListener('click', () => redrawGraph(false));
-                            colorBtn.addEventListener('click', () => {
-                                setupColorPalettes();
-                                showModal(colorModal);
-                            });
-                            debugBtn.addEventListener('click', toggleDebugPanel);
-                            validateBtn.addEventListener('click', validateGraph);
-                            fixBtn.addEventListener('click', fixGraph);
-                            exportBtn.addEventListener('click', exportGraph);
-                            importBtn.addEventListener('click', importGraph);
-                            curveToggleBtn.addEventListener('click', toggleCurvedEdges);
-
-                            togglePanelBtn.addEventListener('click', togglePanel);
-                            document.getElementById('closeDebugBtn').addEventListener('click', () => {
-                                debugPanel.classList.remove('show');
-                            });
-
-                            confirmGoToBtn.addEventListener('click', handleGoTo);
-                            cancelGoToBtn.addEventListener('click', () => hideModal(goToModal));
-
-                            saveColorsBtn.addEventListener('click', saveColors);
-                            resetColorsBtn.addEventListener('click', resetColors);
-
-                            vertexIndex.addEventListener('keydown', (e) => {
-                                if (e.key === 'Enter') {
-                                    handleGoTo();
-                                }
-                            });
-
-                            goToModal.addEventListener('click', (e) => {
-                                if (e.target === goToModal) hideModal(goToModal);
-                            });
-
-                            colorModal.addEventListener('click', (e) => {
-                                if (e.target === colorModal) hideModal(colorModal);
-                            });
-
-                            window.addEventListener('resize', resizeCanvas);
-                            document.addEventListener('keydown', handleKeyDown);
-                        }
-
-                        // ===================================================================
-                        // ERROR HANDLING
-                        // ===================================================================
-
-                        window.addEventListener('error', (e) => {
-                            log('Global error caught', {
-                                message: e.message,
-                                filename: e.filename,
-                                line: e.lineno,
-                                column: e.colno,
-                                error: e.error
-                            });
-                            showAlert('An error occurred. Check console for details.', 'error');
-                        });
-
-                        // ===================================================================
-                        // APPLICATION STARTUP
-                        // ===================================================================
-
-                        if (document.readyState === 'loading') {
-                            document.addEventListener('DOMContentLoaded', init);
+                    };
+
+                    reader.readAsText(file);
+                });
+
+                input.click();
+            }
+
+            // ===================================================================
+            // KEYBOARD SHORTCUTS
+            // ===================================================================
+
+            function handleKeyDown(e) {
+                if (document.activeElement.tagName === 'INPUT') return;
+
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case 's':
+                            e.preventDefault();
+                            exportGraph();
+                            break;
+                        case 'o':
+                            e.preventDefault();
+                            importGraph();
+                            break;
+                    }
+                    return;
+                }
+
+                switch (e.key.toLowerCase()) {
+                    case 's':
+                        if (!startBtn.disabled) startGraph();
+                        break;
+                    case 'a':
+                        if (!addBtn.disabled) startAddVertex();
+                        break;
+                    case 'r':
+                        if (!randomBtn.disabled) addRandomVertex();
+                        break;
+                    case 'g':
+                        if (!goToBtn.disabled) showModal(goToModal);
+                        break;
+                    case 'c':
+                        if (!centerBtn.disabled) centerGraph();
+                        break;
+                    case 't':
+                        if (!toggleBtn.disabled) toggleDisplay();
+                        break;
+                    case 'z':
+                        if (e.shiftKey) {
+                            if (!zoomOutBtn.disabled) zoom(1 / CONFIG.ZOOM_FACTOR);
                         } else {
-                            init();
+                            if (!zoomInBtn.disabled) zoom(CONFIG.ZOOM_FACTOR);
+                        }
+                        break;
+                    case '+':
+                    case '=':
+                        if (!zoomInBtn.disabled) zoom(CONFIG.ZOOM_FACTOR);
+                        break;
+                    case '-':
+                    case '_':
+                        if (!zoomOutBtn.disabled) zoom(1 / CONFIG.ZOOM_FACTOR);
+                        break;
+                    case 'd':
+                        toggleDebugPanel();
+                        break;
+                    case 'escape':
+                        handleEscape();
+                        break;
+                    case 'v':
+                        validateGraph();
+                        break;
+                    case 'f':
+                        if (e.shiftKey || findAllOverlaps().length > 0 || findAllCrossings().length > 0) {
+                            fixGraph();
+                        }
+                        break;
+                    case 'e':
+                        if (!curveToggleBtn.disabled) toggleCurvedEdges();
+                        break;
+                }
+            }
+
+            function handleEscape() {
+                if (debugPanel.classList.contains('show')) {
+                    debugPanel.classList.remove('show');
+                } else if (colorModal.classList.contains('show')) {
+                    hideModal(colorModal);
+                } else if (goToModal.classList.contains('show')) {
+                    hideModal(goToModal);
+                } else if (selection.mode !== 'none') {
+                    selection.mode = 'none';
+                    selection.vertices = [];
+                    selection.firstVertex = null;
+                    selection.secondVertex = null;
+                    updateStatus('Selection canceled');
+                    updateSelectionInfo();
+                    draw();
+                }
+            }
+
+            // ===================================================================
+            // INITIALIZATION AND EVENT SETUP
+            // ===================================================================
+
+            function init() {
+                log('Initializing Professional Planar Triangulated Graph Visualizer - FIXED VERSION');
+
+                initKonva();
+                setupEventListeners();
+                setupColorPalettes();
+
+                updateStatus('Ready to start. Press S or click Start to create initial triangle.');
+                updateVisibilityText();
+
+                curvedStatus.textContent = view.showCurvedEdges ? 'On' : 'Off';
+
+                draw();
+
+                setTimeout(() => {
+                    showAlert('Fixed Version Ready! All major bugs resolved with Matter.js physics', 'success');
+                }, 500);
+
+                log('Fixed application initialized successfully with Matter.js physics engine');
+            }
+
+            function resizeCanvas() {
+                const container = document.getElementById('canvas-container');
+                if (stage) {
+                    stage.width(container.clientWidth);
+                    stage.height(container.clientHeight);
+                    stage.batchDraw();
+                }
+            }
+
+            function setupEventListeners() {
+                startBtn.addEventListener('click', startGraph);
+                addBtn.addEventListener('click', startAddVertex);
+                randomBtn.addEventListener('click', addRandomVertex);
+                goToBtn.addEventListener('click', () => showModal(goToModal));
+                zoomInBtn.addEventListener('click', () => zoom(CONFIG.ZOOM_FACTOR));
+                zoomOutBtn.addEventListener('click', () => zoom(1 / CONFIG.ZOOM_FACTOR));
+                centerBtn.addEventListener('click', centerGraph);
+                toggleBtn.addEventListener('click', toggleDisplay);
+                redrawBtn.addEventListener('click', () => redrawGraph(false));
+                colorBtn.addEventListener('click', () => {
+                    setupColorPalettes();
+                    showModal(colorModal);
+                });
+                debugBtn.addEventListener('click', toggleDebugPanel);
+                validateBtn.addEventListener('click', validateGraph);
+                fixBtn.addEventListener('click', fixGraph);
+                exportBtn.addEventListener('click', exportGraph);
+                importBtn.addEventListener('click', importGraph);
+                curveToggleBtn.addEventListener('click', toggleCurvedEdges);
+
+                togglePanelBtn.addEventListener('click', togglePanel);
+                document.getElementById('closeDebugBtn').addEventListener('click', () => {
+                    debugPanel.classList.remove('show');
+                });
+
+                confirmGoToBtn.addEventListener('click', handleGoTo);
+                cancelGoToBtn.addEventListener('click', () => hideModal(goToModal));
+
+                saveColorsBtn.addEventListener('click', saveColors);
+                resetColorsBtn.addEventListener('click', resetColors);
+
+                vertexIndex.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        handleGoTo();
+                    }
+                });
+
+                goToModal.addEventListener('click', (e) => {
+                    if (e.target === goToModal) hideModal(goToModal);
+                });
+
+                colorModal.addEventListener('click', (e) => {
+                    if (e.target === colorModal) hideModal(colorModal);
+                });
+
+                window.addEventListener('resize', resizeCanvas);
+                document.addEventListener('keydown', handleKeyDown);
+            }
+
+            // ===================================================================
+            // ERROR HANDLING
+            // ===================================================================
+
+            window.addEventListener('error', (e) => {
+                log('Global error caught', {
+                    message: e.message,
+                    filename: e.filename,
+                    line: e.lineno,
+                    column: e.colno,
+                    error: e.error
+                });
+                showAlert('An error occurred. Check console for details.', 'error');
+            });
+
+            // ===================================================================
+            // APPLICATION STARTUP
+            // ===================================================================
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // ===================================================================
+            // DEBUG TOOLS
+            // ===================================================================
+
+            window.graphDebug = {
+                graph,
+                view,
+                colors,
+                selection,
+                config: CONFIG,
+                stage,
+                layers: { faceLayer, edgeLayer, vertexLayer },
+                konvaShapes,
+                quadTree,
+                physicsEngine,
+                physicsRunner,
+
+                testPhysics: () => {
+                    console.log('Physics Engine:', physicsEngine ? 'Active' : 'Inactive');
+                    console.log('Physics Runner:', physicsRunner ? 'Running' : 'Stopped');
+                    if (physicsEngine) {
+                        console.log('Bodies:', physicsEngine.world.bodies.length);
+                        console.log('Constraints:', physicsEngine.world.constraints.length);
+                    }
+                },
+
+                getStats: () => {
+                    const stats = {
+                        vertices: graph.vertices.length,
+                        edges: graph.edges.length,
+                        faces: graph.faces.length,
+                        periphery: graph.periphery.length,
+                        avgDegree: graph.edges.length * 2 / graph.vertices.length,
+                        isPlanar: findAllCrossings().length === 0,
+                        hasOverlaps: findAllOverlaps().length > 0,
+                        regularityScore: checkGraphRegularity(),
+                        memoryUsage: JSON.stringify(graph).length / 1024 + ' KB'
+                    };
+
+                    console.table(stats);
+                    return stats;
+                },
+
+                addRandomVertices: (count) => {
+                    let added = 0;
+                    const interval = setInterval(() => {
+                        if (added >= count || graph.vertices.length >= CONFIG.MAX_VERTICES) {
+                            clearInterval(interval);
+                            showAlert(`Added ${added} vertices`, 'success');
+                            return;
                         }
 
-                        // ===================================================================
-                        // DEBUG TOOLS
-                        // ===================================================================
+                        if (graph.periphery.length >= 2) {
+                            addRandomVertex();
+                            added++;
+                        }
+                    }, 1000);
+                }
+            };
 
-                        window.graphDebug = {
-                            graph,
-                            view,
-                            colors,
-                            selection,
-                            config: CONFIG,
-                            stage,
-                            layers: { faceLayer, edgeLayer, vertexLayer },
-                            konvaShapes,
-                            quadTree,
-                            physicsEngine,
-                            physicsRunner,
+            log('🚀 FIXED Professional Planar Triangulated Graph Visualizer');
+            log('✅ Matter.js physics engine integrated');
+            log('✅ Curved edges fixed with Konva.Path');
+            log('✅ Angular resolution improved to PI/4');
+            log('✅ Position update system optimized');
+            log('✅ QuadTree spatial indexing implemented');
+            log('✅ All critical bugs resolved');
 
-                            testPhysics: () => {
-                                console.log('Physics Engine:', physicsEngine ? 'Active' : 'Inactive');
-                                console.log('Physics Runner:', physicsRunner ? 'Running' : 'Stopped');
-                                if (physicsEngine) {
-                                    console.log('Bodies:', physicsEngine.world.bodies.length);
-                                    console.log('Constraints:', physicsEngine.world.constraints.length);
-                                }
-                            },
-
-                            getStats: () => {
-                                const stats = {
-                                    vertices: graph.vertices.length,
-                                    edges: graph.edges.length,
-                                    faces: graph.faces.length,
-                                    periphery: graph.periphery.length,
-                                    avgDegree: graph.edges.length * 2 / graph.vertices.length,
-                                    isPlanar: findAllCrossings().length === 0,
-                                    hasOverlaps: findAllOverlaps().length > 0,
-                                    regularityScore: checkGraphRegularity(),
-                                    memoryUsage: JSON.stringify(graph).length / 1024 + ' KB'
-                                };
-
-                                console.table(stats);
-                                return stats;
-                            },
-
-                            addRandomVertices: (count) => {
-                                let added = 0;
-                                const interval = setInterval(() => {
-                                    if (added >= count || graph.vertices.length >= CONFIG.MAX_VERTICES) {
-                                        clearInterval(interval);
-                                        showAlert(`Added ${added} vertices`, 'success');
-                                        return;
-                                    }
-
-                                    if (graph.periphery.length >= 2) {
-                                        addRandomVertex();
-                                        added++;
-                                    }
-                                }, 1000);
-                            }
-                        };
-
-                        log('🚀 FIXED Professional Planar Triangulated Graph Visualizer');
-                        log('✅ Matter.js physics engine integrated');
-                        log('✅ Curved edges fixed with Konva.Path');
-                        log('✅ Angular resolution improved to PI/4');
-                        log('✅ Position update system optimized');
-                        log('✅ QuadTree spatial indexing implemented');
-                        log('✅ All critical bugs resolved');
-
-                    })();
-                </script>
+        })();
+    </script>
