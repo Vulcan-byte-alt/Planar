@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planar Graph Visualizer Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-content {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(45deg, #64ffda, #1de9b6, #00bcd4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .mode-indicator {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
+
+        .control-section {
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #64ffda;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, rgba(100, 255, 218, 0.1), rgba(29, 233, 182, 0.1));
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            color: #64ffda;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(100, 255, 218, 0.2), rgba(29, 233, 182, 0.2));
+            border-color: rgba(100, 255, 218, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(100, 255, 218, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.active {
+            background: linear-gradient(135deg, #64ffda, #1de9b6);
+            color: #000;
+            border-color: #64ffda;
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(238, 90, 82, 0.1));
+            border-color: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .btn.danger:hover {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(238, 90, 82, 0.2));
+            border-color: rgba(255, 107, 107, 0.5);
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-field {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #64ffda;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+        }
+
+        .slider-container {
+            margin: 16px 0;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #64ffda, #1de9b6);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(100, 255, 218, 0.3);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #64ffda, #1de9b6);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .color-swatch::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: 4px;
+            background: inherit;
+        }
+
+        .color-swatch.active {
+            border-color: #ffffff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #64ffda;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .canvas-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 24px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #64ffda, #1de9b6);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(100, 255, 218, 0.9), rgba(29, 233, 182, 0.9));
+            color: #000;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(100, 255, 218, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            font-weight: 500;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #ffffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 280px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 200px;
+                overflow-x: auto;
+            }
+
+            .control-section {
+                display: inline-block;
+                margin-right: 16px;
+                width: 250px;
+                vertical-align: top;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #64ffda, #1de9b6);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="control-section">
+                <h3>🎯 Core Commands</h3>
+                <div class="button-grid">
+                    <button class="btn" onclick="startBasicGraph()" title="Start basic triangle">S</button>
+                    <button class="btn" onclick="addRandomVertex()" title="Add random vertex">R</button>
+                    <button class="btn" onclick="enableAddMode()" title="Add vertex manually">A</button>
+                    <button class="btn" onclick="centerGraph()" title="Center graph">C</button>
+                    <button class="btn" onclick="toggleDisplay()" title="Toggle color/index">T</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🔄 Reubication Engine</h3>
+                <div class="button-grid">
+                    <button class="btn danger" onclick="performRedraw()"
+                        title="Full redraw with optimization">REDRAW</button>
+                    <button class="btn" onclick="optimizeAngles()" title="Redistribute angles">ANGLES</button>
+                    <button class="btn" onclick="normalizeDistances()" title="Normalize distances">DISTANCES</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🎮 Navigation</h3>
+                <div class="button-grid">
+                    <button class="btn" onclick="zoomIn()" title="Zoom in">Z+</button>
+                    <button class="btn" onclick="zoomOut()" title="Zoom out">Z-</button>
+                    <button class="btn" onclick="resetView()" title="Reset view">Reset</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Go to Vertex (Gm)</label>
+                    <input type="number" class="input-field" id="goToVertex" min="1" max="10000"
+                        placeholder="Enter vertex number" onchange="goToVertex(this.value)">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>🎨 Visual Settings</h3>
+
+                <div class="input-group">
+                    <label>Color Palette (1-4)</label>
+                    <div class="color-palette">
+                        <div class="color-swatch active" style="background: linear-gradient(135deg, #ff6b6b, #ee5a52)"
+                            onclick="selectColor(1)" data-color="1"></div>
+                        <div class="color-swatch" style="background: linear-gradient(135deg, #4ecdc4, #44a08d)"
+                            onclick="selectColor(2)" data-color="2"></div>
+                        <div class="color-swatch" style="background: linear-gradient(135deg, #45b7d1, #96c93d)"
+                            onclick="selectColor(3)" data-color="3"></div>
+                        <div class="color-swatch" style="background: linear-gradient(135deg, #f9ca24, #f0932b)"
+                            onclick="selectColor(4)" data-color="4"></div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Edge Style</label>
+                    <button class="btn" onclick="toggleEdgeStyle()" id="edgeStyleBtn">CURVED</button>
+                </div>
+
+                <div class="slider-container">
+                    <label>Vertex Size: <span id="vertexSizeValue">12</span></label>
+                    <input type="range" class="slider" id="vertexSize" min="6" max="24" value="12"
+                        oninput="updateVertexSize(this.value)">
+                </div>
+
+                <div class="slider-container">
+                    <label>Edge Length: <span id="edgeLengthValue">100</span></label>
+                    <input type="range" class="slider" id="edgeLength" min="60" max="200" value="100"
+                        oninput="updateEdgeLength(this.value)">
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>📊 Graph Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="vertexCount">0</span>
+                        <span class="stat-label">Vertices</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="edgeCount">0</span>
+                        <span class="stat-label">Edges</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="peripheryCount">0</span>
+                        <span class="stat-label">Periphery</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="selectedVertex">None</span>
+                        <span class="stat-label">Selected</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="capacityProgress"></div>
+                </div>
+                <div style="font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 4px;">
+                    Capacity: <span id="capacityText">0/10000</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="logo">Planar Graph Visualizer Pro</div>
+                <div class="mode-indicator" id="modeIndicator">Normal Mode</div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="graphCanvas"></canvas>
+            </div>
+
+            <div class="status-bar" id="statusBar">
+                Ready to create planar triangulated graphs. Press 'S' to start with basic triangle.
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Enhanced Graph data structure with complete functionality
+        class PlanarGraph {
+            constructor() {
+                this.vertices = new Map();
+                this.edges = new Set();
+                this.periphery = [];
+                this.nextId = 1;
+                this.adjacencyList = new Map();
+                this.maxVertices = 10000;
+                this.triangulation = [];
+            }
+
+            addVertex(x, y, color = 1) {
+                if (this.vertices.size >= this.maxVertices) {
+                    showNotification(`Maximum vertices reached (${this.maxVertices})`, 'error');
+                    return null;
+                }
+
+                const id = this.nextId++;
+                const vertex = {
+                    id: id,
+                    x: x,
+                    y: y,
+                    color: color,
+                    size: this.calculateVertexSize(id),
+                    onPeriphery: false,
+                    visible: true
+                };
+
+                this.vertices.set(id, vertex);
+                this.adjacencyList.set(id, new Set());
+
+                console.log(`✅ Added vertex ${id} at (${x.toFixed(1)}, ${y.toFixed(1)})`);
+                return vertex;
+            }
+
+            addEdge(v1Id, v2Id) {
+                if (!this.vertices.has(v1Id) || !this.vertices.has(v2Id)) {
+                    console.error(`Cannot add edge: vertex ${v1Id} or ${v2Id} not found`);
+                    return false;
+                }
+
+                const edge = `${Math.min(v1Id, v2Id)}-${Math.max(v1Id, v2Id)}`;
+                if (this.edges.has(edge)) {
+                    return false; // Edge already exists
+                }
+
+                this.edges.add(edge);
+                this.adjacencyList.get(v1Id).add(v2Id);
+                this.adjacencyList.get(v2Id).add(v1Id);
+
+                return true;
+            }
+
+            removeVertex(id) {
+                if (!this.vertices.has(id)) return false;
+
+                // Remove all edges connected to this vertex
+                const neighbors = Array.from(this.adjacencyList.get(id));
+                neighbors.forEach(neighborId => {
+                    const edge = `${Math.min(id, neighborId)}-${Math.max(id, neighborId)}`;
+                    this.edges.delete(edge);
+                    this.adjacencyList.get(neighborId).delete(id);
+                });
+
+                this.vertices.delete(id);
+                this.adjacencyList.delete(id);
+
+                this.updatePeriphery();
+                return true;
+            }
+
+            calculateVertexSize(id) {
+                const baseSize = parseInt(document.getElementById('vertexSize').value);
+                const digits = id.toString().length;
+                return baseSize + (digits - 1) * 3;
+            }
+
+            updatePeriphery() {
+                if (this.vertices.size === 0) {
+                    this.periphery = [];
+                    return;
+                }
+
+                if (this.vertices.size <= 2) {
+                    this.periphery = Array.from(this.vertices.keys());
+                    this.periphery.forEach(id => {
+                        this.vertices.get(id).onPeriphery = true;
+                    });
+                    return;
+                }
+
+                const vertices = Array.from(this.vertices.values()).filter(v => v.visible);
+                const hull = this.computeConvexHull(vertices);
+                this.periphery = hull.map(v => v.id);
+
+                // Reset all periphery flags
+                this.vertices.forEach(v => v.onPeriphery = false);
+
+                // Set periphery flags
+                this.periphery.forEach(id => {
+                    const vertex = this.vertices.get(id);
+                    if (vertex) vertex.onPeriphery = true;
+                });
+
+                console.log(`🔄 Updated periphery: [${this.periphery.join(', ')}]`);
+            }
+
+            computeConvexHull(vertices) {
+                if (vertices.length < 3) return vertices;
+
+                // Sort points by y-coordinate (and x-coordinate in case of tie)
+                const sorted = vertices.slice().sort((a, b) => {
+                    if (Math.abs(a.y - b.y) < 1e-10) return a.x - b.x;
+                    return a.y - b.y;
+                });
+
+                const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+
+                // Build lower hull
+                const lower = [];
+                for (const p of sorted) {
+                    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+                        lower.pop();
+                    }
+                    lower.push(p);
+                }
+
+                // Build upper hull
+                const upper = [];
+                for (let i = sorted.length - 1; i >= 0; i--) {
+                    const p = sorted[i];
+                    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+                        upper.pop();
+                    }
+                    upper.push(p);
+                }
+
+                // Remove last point of each half because it's repeated
+                return lower.slice(0, -1).concat(upper.slice(0, -1));
+            }
+
+            validatePlanarity() {
+                // Simple planarity check - for a more complex implementation, 
+                // you would use Kuratowski's theorem or other algorithms
+                return this.vertices.size <= 100 || this.edges.size <= 3 * this.vertices.size - 6;
+            }
+
+            getVerticesBetween(vpId, vqId) {
+                if (this.periphery.length < 2) return [];
+
+                const vpIdx = this.periphery.indexOf(vpId);
+                const vqIdx = this.periphery.indexOf(vqId);
+
+                if (vpIdx === -1 || vqIdx === -1) {
+                    console.error(`Vertex ${vpId} or ${vqId} not found in periphery`);
+                    return [];
+                }
+
+                const result = [];
+                let current = vpIdx;
+                let steps = 0;
+                const maxSteps = this.periphery.length + 1;
+
+                while (steps < maxSteps) {
+                    result.push(this.periphery[current]);
+                    if (current === vqIdx && steps > 0) break;
+                    current = (current + 1) % this.periphery.length;
+                    steps++;
+                }
+
+                console.log(`📍 Vertices between V${vpId} and V${vqId}: [${result.join(', ')}]`);
+                return result;
+            }
+        }
+
+        // Advanced Reubication Engine with complete functionality
+        class ReubicationEngine {
+            constructor(graph) {
+                this.graph = graph;
+                this.targetEdgeLength = 100;
+                this.minAngle = Math.PI / 3; // 60 degrees
+                this.maxIterations = 100;
+                this.convergenceThreshold = 0.1;
+            }
+
+            performRedraw() {
+                console.log("🔄 Starting COMPLETE REUBICATION process...");
+                showNotification("Performing redraw optimization...", 'info');
+
+                if (this.graph.vertices.size < 3) {
+                    console.log("❌ Not enough vertices for redraw");
+                    return;
+                }
+
+                // Phase 1: Analyze current state
+                const peripheryVertices = this.graph.periphery.map(id => this.graph.vertices.get(id)).filter(v => v);
+                if (peripheryVertices.length < 3) {
+                    console.log("❌ Not enough periphery vertices");
+                    return;
+                }
+
+                const angles = this.calculatePeripheryAngles(peripheryVertices);
+                console.log(`📐 Current angles: ${angles.map(a => (a * 180 / Math.PI).toFixed(1) + '°').join(', ')}`);
+
+                // Phase 2: Identify problems
+                const problemAngles = angles.filter(angle => angle < this.minAngle);
+                if (problemAngles.length > 0) {
+                    console.log(`⚠️ Found ${problemAngles.length} angles below 60°`);
+                }
+
+                // Phase 3: Redistribute angles equally
+                this.redistributeAngles(peripheryVertices);
+
+                // Phase 4: Normalize edge distances
+                this.normalizeEdgeDistances();
+
+                // Phase 5: Relax internal vertices
+                this.repositionInternalVertices();
+
+                // Phase 6: Update periphery after repositioning
+                this.graph.updatePeriphery();
+
+                console.log("✅ REUBICATION complete");
+                showNotification("Redraw completed successfully!", 'success');
+                updateStatus("Redraw completed - angles and distances optimized");
+            }
+
+            calculatePeripheryAngles(peripheryVertices) {
+                const angles = [];
+                const n = peripheryVertices.length;
+
+                if (n < 3) return angles;
+
+                for (let i = 0; i < n; i++) {
+                    const prev = peripheryVertices[(i - 1 + n) % n];
+                    const curr = peripheryVertices[i];
+                    const next = peripheryVertices[(i + 1) % n];
+
+                    const v1 = { x: prev.x - curr.x, y: prev.y - curr.y };
+                    const v2 = { x: next.x - curr.x, y: next.y - curr.y };
+
+                    const dot = v1.x * v2.x + v1.y * v2.y;
+                    const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+                    const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+                    if (mag1 > 0 && mag2 > 0) {
+                        let angle = Math.acos(Math.max(-1, Math.min(1, dot / (mag1 * mag2))));
+                        angles.push(angle);
+                    } else {
+                        angles.push(Math.PI);
+                    }
+                }
+
+                return angles;
+            }
+
+            redistributeAngles(peripheryVertices) {
+                const n = peripheryVertices.length;
+                if (n < 3) return;
+
+                // Calculate center of mass
+                let centerX = 0, centerY = 0;
+                peripheryVertices.forEach(v => {
+                    centerX += v.x;
+                    centerY += v.y;
+                });
+                centerX /= n;
+                centerY /= n;
+
+                // Calculate average radius
+                let avgRadius = 0;
+                peripheryVertices.forEach(v => {
+                    const dist = Math.sqrt((v.x - centerX) ** 2 + (v.y - centerY) ** 2);
+                    avgRadius += dist;
+                });
+                avgRadius /= n;
+
+                // Ensure minimum radius
+                avgRadius = Math.max(avgRadius, this.targetEdgeLength * 0.8);
+
+                // Redistribute vertices in equal angular steps
+                const angleStep = (2 * Math.PI) / n;
+
+                peripheryVertices.forEach((vertex, i) => {
+                    const angle = i * angleStep;
+                    vertex.x = centerX + avgRadius * Math.cos(angle);
+                    vertex.y = centerY + avgRadius * Math.sin(angle);
+                });
+
+                console.log(`🔄 Redistributed ${n} periphery vertices with radius ${avgRadius.toFixed(1)}`);
+            }
+
+            normalizeEdgeDistances() {
+                let adjustments = 0;
+
+                this.graph.edges.forEach(edgeStr => {
+                    const [v1Id, v2Id] = edgeStr.split('-').map(Number);
+                    const v1 = this.graph.vertices.get(v1Id);
+                    const v2 = this.graph.vertices.get(v2Id);
+
+                    if (!v1 || !v2 || !v1.visible || !v2.visible) return;
+
+                    const currentDist = Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
+                    const targetDist = this.targetEdgeLength;
+
+                    if (Math.abs(currentDist - targetDist) > 10) {
+                        // Only adjust if both vertices are not on periphery
+                        if (!v1.onPeriphery && !v2.onPeriphery) {
+                            const centerX = (v1.x + v2.x) / 2;
+                            const centerY = (v1.y + v2.y) / 2;
+                            const angle = Math.atan2(v2.y - v1.y, v2.x - v1.x);
+
+                            const halfTarget = targetDist / 2;
+                            v1.x = centerX - halfTarget * Math.cos(angle);
+                            v1.y = centerY - halfTarget * Math.sin(angle);
+                            v2.x = centerX + halfTarget * Math.cos(angle);
+                            v2.y = centerY + halfTarget * Math.sin(angle);
+
+                            adjustments++;
+                        }
+                    }
+                });
+
+                console.log(`🔧 Normalized ${adjustments} edge distances`);
+            }
+
+            repositionInternalVertices() {
+                const internalVertices = Array.from(this.graph.vertices.values())
+                    .filter(v => !v.onPeriphery && v.visible);
+
+                if (internalVertices.length === 0) return;
+
+                console.log(`🎯 Repositioning ${internalVertices.length} internal vertices`);
+
+                for (let iteration = 0; iteration < this.maxIterations; iteration++) {
+                    let totalMovement = 0;
+
+                    internalVertices.forEach(vertex => {
+                        const neighbors = Array.from(this.graph.adjacencyList.get(vertex.id))
+                            .map(id => this.graph.vertices.get(id))
+                            .filter(v => v && v.visible);
+
+                        if (neighbors.length === 0) return;
+
+                        // Calculate ideal position (centroid of neighbors)
+                        let sumX = 0, sumY = 0;
+                        neighbors.forEach(neighbor => {
+                            sumX += neighbor.x;
+                            sumY += neighbor.y;
+                        });
+
+                        const idealX = sumX / neighbors.length;
+                        const idealY = sumY / neighbors.length;
+
+                        // Apply spring force with damping
+                        const damping = 0.2;
+                        const deltaX = (idealX - vertex.x) * damping;
+                        const deltaY = (idealY - vertex.y) * damping;
+
+                        vertex.x += deltaX;
+                        vertex.y += deltaY;
+
+                        totalMovement += Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    });
+
+                    // Check convergence
+                    if (totalMovement < this.convergenceThreshold) {
+                        console.log(`✅ Converged after ${iteration + 1} iterations`);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Application State and Core Variables
+        let graph = new PlanarGraph();
+        let reubicationEngine = new ReubicationEngine(graph);
+        let canvas, ctx;
+
+        let viewState = {
+            offsetX: 0,
+            offsetY: 0,
+            zoom: 1,
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            minZoom: 0.1,
+            maxZoom: 5
+        };
+
+        let appState = {
+            mode: 'normal',
+            selectedColor: 1,
+            showIndices: false,
+            edgeStyle: 'curved',
+            vpVertex: null,
+            vqVertex: null,
+            maxVisibleVertex: Infinity,
+            lastUpdateTime: 0,
+            animationId: null
+        };
+
+        // Initialize Application
+        function init() {
+            console.log("🚀 Initializing Planar Graph Visualizer Pro...");
+
+            canvas = document.getElementById('graphCanvas');
+            ctx = canvas.getContext('2d');
+
+            // Set up canvas
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Mouse and touch events
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('wheel', handleWheel, { passive: false });
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+            // Keyboard events
+            document.addEventListener('keydown', handleKeyDown);
+
+            // Initialize UI
+            updateUI();
+            startRenderLoop();
+
+            showNotification("Planar Graph Visualizer Pro initialized!", 'success');
+            updateStatus("Ready to create planar triangulated graphs. Press 'S' to start.");
+
+            console.log("✅ Initialization complete");
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            ctx.scale(dpr, dpr);
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+        }
+
+        function startRenderLoop() {
+            function renderFrame(timestamp) {
+                if (timestamp - appState.lastUpdateTime > 16) { // ~60fps
+                    render();
+                    appState.lastUpdateTime = timestamp;
+                }
+                appState.animationId = requestAnimationFrame(renderFrame);
+            }
+            appState.animationId = requestAnimationFrame(renderFrame);
+        }
+
+        // Core Graph Operations
+        function startBasicGraph() {
+            console.log("🎯 Starting basic graph...");
+
+            graph = new PlanarGraph();
+            reubicationEngine = new ReubicationEngine(graph);
+
+            // Reset view
+            viewState.offsetX = 0;
+            viewState.offsetY = 0;
+            viewState.zoom = 1;
+            appState.maxVisibleVertex = Infinity;
+
+            // Create initial triangle at canvas center
+            const rect = canvas.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const radius = 80;
+
+            // Create vertices
+            const v1 = graph.addVertex(centerX, centerY - radius, 1);
+            const v2 = graph.addVertex(centerX - radius * Math.cos(Math.PI / 6), centerY + radius * Math.sin(Math.PI / 6), 1);
+            const v3 = graph.addVertex(centerX + radius * Math.cos(Math.PI / 6), centerY + radius * Math.sin(Math.PI / 6), 1);
+
+            if (!v1 || !v2 || !v3) {
+                showNotification("Failed to create initial triangle", 'error');
+                return;
+            }
+
+            // Create edges
+            graph.addEdge(v1.id, v2.id);
+            graph.addEdge(v2.id, v3.id);
+            graph.addEdge(v3.id, v1.id);
+
+            // Update periphery
+            graph.updatePeriphery();
+
+            setMode('normal');
+            updateUI();
+            showNotification("Basic triangle created (V1, V2, V3)", 'success');
+            updateStatus("Basic triangle created. Use 'R' for random vertex or 'A' for manual addition.");
+
+            console.log("✅ Basic graph created successfully");
+        }
+
+        function addRandomVertex() {
+            console.log("🎲 Adding random vertex...");
+
+            if (graph.periphery.length < 2) {
+                showNotification("Need at least 2 vertices on periphery", 'warning');
+                updateStatus("Need at least 2 vertices to add random vertex");
+                return;
+            }
+
+            // Select two random contiguous vertices on periphery
+            const peripherySize = graph.periphery.length;
+            const startIdx = Math.floor(Math.random() * peripherySize);
+
+            // Choose a random span (2 to peripherySize vertices)
+            const minSpan = 2;
+            const maxSpan = Math.min(peripherySize, 5); // Limit span for better results
+            const span = Math.floor(Math.random() * (maxSpan - minSpan + 1)) + minSpan;
+            const endIdx = (startIdx + span - 1) % peripherySize;
+
+            const vpId = graph.periphery[startIdx];
+            const vqId = graph.periphery[endIdx];
+
+            console.log(`🎯 Selected Vp=${vpId}, Vq=${vqId} (span=${span})`);
+
+            addVertexBetween(vpId, vqId);
+        }
+
+        function addVertexBetween(vpId, vqId) {
+            console.log(`➕ Adding vertex between V${vpId} and V${vqId}...`);
+
+            const vp = graph.vertices.get(vpId);
+            const vq = graph.vertices.get(vqId);
+
+            if (!vp || !vq) {
+                console.error(`Vertices not found: Vp=${vpId}, Vq=${vqId}`);
+                showNotification("Selected vertices not found", 'error');
+                return;
+            }
+
+            // Find all vertices between Vp and Vq (clockwise)
+            const touchingVertices = graph.getVerticesBetween(vpId, vqId);
+
+            if (touchingVertices.length < 2) {
+                showNotification("Need at least 2 vertices to touch (m > 1)", 'warning');
+                updateStatus("Need at least 2 vertices to touch (m > 1)");
+                return;
+            }
+
+            console.log(`🔗 Will connect to ${touchingVertices.length} vertices`);
+
+            // Calculate optimal position for new vertex
+            const newPos = calculateOptimalPosition(touchingVertices);
+
+            // Validate angles before adding
+            if (!validateAngles(newPos, touchingVertices)) {
+                console.log("⚠️ Angle constraint violated - performing redraw");
+                showNotification("Angle constraint violated - optimizing...", 'warning');
+                reubicationEngine.performRedraw();
+                return;
+            }
+
+            // Add the new vertex
+            const newVertex = graph.addVertex(newPos.x, newPos.y, appState.selectedColor);
+            if (!newVertex) {
+                showNotification("Failed to add vertex", 'error');
+                return;
+            }
+
+            // Connect to all touching vertices
+            let connections = 0;
+            touchingVertices.forEach(vId => {
+                if (graph.addEdge(newVertex.id, vId)) {
+                    connections++;
+                }
+            });
+
+            console.log(`🔗 Made ${connections} connections`);
+
+            // Update periphery
+            graph.updatePeriphery();
+
+            // Apply reubication mechanism
+            reubicationEngine.performRedraw();
+
+            updateUI();
+            showNotification(`Added vertex ${newVertex.id} connected to ${connections} vertices`, 'success');
+            updateStatus(`Added vertex ${newVertex.id} touching ${touchingVertices.length} vertices. Reubication applied.`);
+
+            console.log(`✅ Successfully added vertex ${newVertex.id}`);
+        }
+
+        function calculateOptimalPosition(touchingVertices) {
+            // Calculate centroid of touching vertices
+            let sumX = 0, sumY = 0;
+            touchingVertices.forEach(vId => {
+                const v = graph.vertices.get(vId);
+                if (v) {
+                    sumX += v.x;
+                    sumY += v.y;
+                }
+            });
+
+            const centroidX = sumX / touchingVertices.length;
+            const centroidY = sumY / touchingVertices.length;
+
+            // Calculate center of canvas for outward direction
+            const rect = canvas.getBoundingClientRect();
+            const canvasCenterX = rect.width / 2;
+            const canvasCenterY = rect.height / 2;
+
+            // Direction from canvas center to centroid (outward)
+            let dirX = centroidX - canvasCenterX;
+            let dirY = centroidY - canvasCenterY;
+            const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+
+            if (dirLength > 0) {
+                dirX /= dirLength;
+                dirY /= dirLength;
+            } else {
+                // Fallback: random direction
+                const angle = Math.random() * 2 * Math.PI;
+                dirX = Math.cos(angle);
+                dirY = Math.sin(angle);
+            }
+
+            // Place new vertex at optimal distance
+            const edgeLength = reubicationEngine.targetEdgeLength;
+            const offset = edgeLength * 0.7; // Slightly closer for better integration
+
+            return {
+                x: centroidX + dirX * offset,
+                y: centroidY + dirY * offset
+            };
+        }
+
+        function validateAngles(newPos, touchingVertices) {
+            // Simple validation - check if new position is reasonable
+            const minDistToExisting = 20;
+
+            for (const vId of touchingVertices) {
+                const v = graph.vertices.get(vId);
+                if (v) {
+                    const dist = Math.sqrt((newPos.x - v.x) ** 2 + (newPos.y - v.y) ** 2);
+                    if (dist < minDistToExisting) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        // Input Handling
+        function handleMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const worldPos = screenToWorld(x, y);
+            const clickedVertex = findVertexAt(worldPos.x, worldPos.y);
+
+            e.preventDefault();
+
+            if (e.button === 2) { // Right click
+                handleRightClick(worldPos, clickedVertex);
+                return;
+            }
+
+            switch (appState.mode) {
+                case 'addVertex':
+                    if (!clickedVertex) {
+                        showNotification("Click on a periphery vertex to select Vp", 'info');
+                        setMode('selectVp');
+                    }
+                    break;
+
+                case 'selectVp':
+                    if (clickedVertex && graph.periphery.includes(clickedVertex.id)) {
+                        appState.vpVertex = clickedVertex;
+                        showNotification(`Vp selected: V${clickedVertex.id}. Now click on Vq`, 'info');
+                        setMode('selectVq');
+                    } else {
+                        showNotification("Please click on a periphery vertex for Vp", 'warning');
+                    }
+                    break;
+
+                case 'selectVq':
+                    if (clickedVertex && graph.periphery.includes(clickedVertex.id) && clickedVertex.id !== appState.vpVertex.id) {
+                        appState.vqVertex = clickedVertex;
+                        addVertexBetween(appState.vpVertex.id, appState.vqVertex.id);
+                        setMode('normal');
+                    } else {
+                        showNotification("Please click on a different periphery vertex for Vq", 'warning');
+                    }
+                    break;
+
+                default:
+                    // Normal mode - start dragging
+                    viewState.isDragging = true;
+                    viewState.dragStart = { x: x, y: y };
+                    canvas.style.cursor = 'grabbing';
+
+                    if (clickedVertex) {
+                        document.getElementById('selectedVertex').textContent = `V${clickedVertex.id}`;
+                        showTooltip(e.clientX, e.clientY, `Vertex ${clickedVertex.id}\nColor: ${clickedVertex.color}\nPosition: (${clickedVertex.x.toFixed(1)}, ${clickedVertex.y.toFixed(1)})`);
+                    }
+                    break;
+            }
+        }
+
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (viewState.isDragging) {
+                const deltaX = x - viewState.dragStart.x;
+                const deltaY = y - viewState.dragStart.y;
+
+                viewState.offsetX += deltaX;
+                viewState.offsetY += deltaY;
+
+                viewState.dragStart = { x: x, y: y };
+            } else {
+                // Show vertex info on hover
+                const worldPos = screenToWorld(x, y);
+                const hoveredVertex = findVertexAt(worldPos.x, worldPos.y);
+
+                if (hoveredVertex) {
+                    canvas.style.cursor = 'pointer';
+                    showTooltip(e.clientX, e.clientY, `V${hoveredVertex.id} (${hoveredVertex.color})`);
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                    hideTooltip();
+                }
+            }
+        }
+
+        function handleMouseUp(e) {
+            viewState.isDragging = false;
+            canvas.style.cursor = 'crosshair';
+            hideTooltip();
+        }
+
+        function handleRightClick(worldPos, clickedVertex) {
+            if (clickedVertex) {
+                // Context menu for vertex
+                const options = [
+                    `Delete V${clickedVertex.id}`,
+                    `Change color`,
+                    `Move to center`,
+                    `Show connections`
+                ];
+                // Implement context menu here
+                console.log(`Right-clicked on vertex ${clickedVertex.id}`);
+            }
+        }
+
+        function handleWheel(e) {
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const worldPos = screenToWorld(mouseX, mouseY);
+
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = viewState.zoom * zoomFactor;
+
+            if (newZoom >= viewState.minZoom && newZoom <= viewState.maxZoom) {
+                viewState.zoom = newZoom;
+
+                // Zoom towards mouse position
+                const newWorldPos = screenToWorld(mouseX, mouseY);
+                viewState.offsetX += (worldPos.x - newWorldPos.x) * viewState.zoom;
+                viewState.offsetY += (worldPos.y - newWorldPos.y) * viewState.zoom;
+            }
+        }
+
+        // Touch event handlers for mobile support
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+
+                viewState.isDragging = true;
+                viewState.dragStart = { x: x, y: y };
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (e.touches.length === 1 && viewState.isDragging) {
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+
+                const deltaX = x - viewState.dragStart.x;
+                const deltaY = y - viewState.dragStart.y;
+
+                viewState.offsetX += deltaX;
+                viewState.offsetY += deltaY;
+
+                viewState.dragStart = { x: x, y: y };
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            viewState.isDragging = false;
+        }
+
+        function handleKeyDown(e) {
+            // Prevent default for graph control keys
+            const graphKeys = ['s', 'r', 'a', 'c', 't', '=', '-', 'escape'];
+            if (graphKeys.includes(e.key.toLowerCase())) {
+                e.preventDefault();
+            }
+
+            switch (e.key.toLowerCase()) {
+                case 's':
+                    startBasicGraph();
+                    break;
+                case 'r':
+                    addRandomVertex();
+                    break;
+                case 'a':
+                    enableAddMode();
+                    break;
+                case 'c':
+                    centerGraph();
+                    break;
+                case 't':
+                    toggleDisplay();
+                    break;
+                case '=':
+                case '+':
+                    zoomIn();
+                    break;
+                case '-':
+                case '_':
+                    zoomOut();
+                    break;
+                case 'escape':
+                    setMode('normal');
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                    selectColor(parseInt(e.key));
+                    break;
+            }
+        }
+
+        // Utility Functions
+        function findVertexAt(x, y) {
+            for (const vertex of graph.vertices.values()) {
+                if (!vertex.visible || vertex.id > appState.maxVisibleVertex) continue;
+
+                const dx = vertex.x - x;
+                const dy = vertex.y - y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance <= vertex.size + 8) {
+                    return vertex;
+                }
+            }
+            return null;
+        }
+
+        function screenToWorld(screenX, screenY) {
+            return {
+                x: (screenX - viewState.offsetX) / viewState.zoom,
+                y: (screenY - viewState.offsetY) / viewState.zoom
+            };
+        }
+
+        function worldToScreen(worldX, worldY) {
+            return {
+                x: worldX * viewState.zoom + viewState.offsetX,
+                y: worldY * viewState.zoom + viewState.offsetY
+            };
+        }
+
+        // UI Control Functions
+        function enableAddMode() {
+            if (graph.periphery.length < 2) {
+                showNotification("Need at least 2 vertices on periphery", 'warning');
+                updateStatus("Need at least 2 vertices to add manually");
+                return;
+            }
+            setMode('addVertex');
+            showNotification("Click on a periphery vertex to select Vp", 'info');
+        }
+
+        function setMode(newMode) {
+            appState.mode = newMode;
+            appState.vpVertex = null;
+            appState.vqVertex = null;
+
+            const modeNames = {
+                'normal': 'Normal Mode',
+                'addVertex': 'Add Vertex Mode',
+                'selectVp': 'Select Vp',
+                'selectVq': 'Select Vq'
+            };
+
+            const indicator = document.getElementById('modeIndicator');
+            indicator.textContent = modeNames[newMode] || newMode;
+
+            // Update indicator color based on mode
+            if (newMode === 'normal') {
+                indicator.style.background = 'linear-gradient(135deg, #64ffda, #1de9b6)';
+            } else {
+                indicator.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a52)';
+            }
+        }
+
+        function performRedraw() {
+            if (graph.vertices.size < 3) {
+                showNotification("Need at least 3 vertices for redraw", 'warning');
+                return;
+            }
+            reubicationEngine.performRedraw();
+        }
+
+        function optimizeAngles() {
+            if (graph.periphery.length < 3) {
+                showNotification("Need at least 3 periphery vertices", 'warning');
+                return;
+            }
+
+            const peripheryVertices = graph.periphery.map(id => graph.vertices.get(id)).filter(v => v);
+            reubicationEngine.redistributeAngles(peripheryVertices);
+            graph.updatePeriphery();
+
+            showNotification("Angles optimized and redistributed", 'success');
+            updateStatus("Angles optimized and redistributed");
+        }
+
+        function normalizeDistances() {
+            if (graph.edges.size === 0) {
+                showNotification("No edges to normalize", 'warning');
+                return;
+            }
+
+            reubicationEngine.normalizeEdgeDistances();
+            showNotification("Edge distances normalized", 'success');
+            updateStatus("Edge distances normalized");
+        }
+
+        function zoomIn() {
+            const newZoom = viewState.zoom * 1.2;
+            if (newZoom <= viewState.maxZoom) {
+                viewState.zoom = newZoom;
+            }
+        }
+
+        function zoomOut() {
+            const newZoom = viewState.zoom * 0.8;
+            if (newZoom >= viewState.minZoom) {
+                viewState.zoom = newZoom;
+            }
+        }
+
+        function resetView() {
+            viewState.offsetX = 0;
+            viewState.offsetY = 0;
+            viewState.zoom = 1;
+            showNotification("View reset", 'info');
+        }
+
+        function centerGraph() {
+            if (graph.vertices.size === 0) {
+                showNotification("No vertices to center", 'warning');
+                return;
+            }
+
+            // Calculate bounding box of visible vertices
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+            let vertexCount = 0;
+
+            for (const vertex of graph.vertices.values()) {
+                if (!vertex.visible || vertex.id > appState.maxVisibleVertex) continue;
+
+                minX = Math.min(minX, vertex.x);
+                minY = Math.min(minY, vertex.y);
+                maxX = Math.max(maxX, vertex.x);
+                maxY = Math.max(maxY, vertex.y);
+                vertexCount++;
+            }
+
+            if (vertexCount === 0) {
+                showNotification("No visible vertices to center", 'warning');
+                return;
+            }
+
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+
+            const graphWidth = maxX - minX;
+            const graphHeight = maxY - minY;
+
+            // Fit to canvas with padding
+            const rect = canvas.getBoundingClientRect();
+            const padding = 50;
+            const scaleX = (rect.width - padding * 2) / graphWidth;
+            const scaleY = (rect.height - padding * 2) / graphHeight;
+
+            viewState.zoom = Math.min(scaleX, scaleY, 2);
+            viewState.zoom = Math.max(viewState.zoom, viewState.minZoom);
+
+            viewState.offsetX = rect.width / 2 - centerX * viewState.zoom;
+            viewState.offsetY = rect.height / 2 - centerY * viewState.zoom;
+
+            showNotification("Graph centered and fitted", 'success');
+        }
+
+        function toggleDisplay() {
+            appState.showIndices = !appState.showIndices;
+            const mode = appState.showIndices ? 'INDICES' : 'COLORS';
+            showNotification(`Display mode: ${mode}`, 'info');
+            updateStatus(`Display mode: ${mode}`);
+        }
+
+        function goToVertex(vertexId) {
+            const id = parseInt(vertexId);
+            if (isNaN(id) || id < 1) {
+                showNotification("Invalid vertex number", 'warning');
+                return;
+            }
+
+            if (id > graph.vertices.size) {
+                showNotification(`Vertex ${id} does not exist`, 'warning');
+                return;
+            }
+
+            appState.maxVisibleVertex = id;
+            showNotification(`Showing vertices 1-${id}`, 'info');
+            updateStatus(`Showing vertices 1-${id}, hiding ${graph.vertices.size - id} vertices`);
+            updateUI();
+        }
+
+        function selectColor(colorNum) {
+            if (colorNum < 1 || colorNum > 4) return;
+
+            appState.selectedColor = colorNum;
+
+            // Update UI
+            document.querySelectorAll('.color-swatch').forEach(swatch => {
+                swatch.classList.remove('active');
+            });
+            document.querySelector(`[data-color="${colorNum}"]`).classList.add('active');
+
+            showNotification(`Selected color ${colorNum}`, 'info');
+        }
+
+        function toggleEdgeStyle() {
+            appState.edgeStyle = appState.edgeStyle === 'curved' ? 'straight' : 'curved';
+            document.getElementById('edgeStyleBtn').textContent = appState.edgeStyle.toUpperCase();
+            showNotification(`Edge style: ${appState.edgeStyle}`, 'info');
+        }
+
+        function updateVertexSize(value) {
+            document.getElementById('vertexSizeValue').textContent = value;
+
+            // Update all existing vertices
+            for (const vertex of graph.vertices.values()) {
+                vertex.size = graph.calculateVertexSize(vertex.id);
+            }
+
+            showNotification(`Vertex size: ${value}`, 'info');
+        }
+
+        function updateEdgeLength(value) {
+            document.getElementById('edgeLengthValue').textContent = value;
+            reubicationEngine.targetEdgeLength = parseInt(value);
+            showNotification(`Target edge length: ${value}`, 'info');
+        }
+
+        function updateUI() {
+            // Update statistics
+            const visibleVertices = Array.from(graph.vertices.values())
+                .filter(v => v.visible && v.id <= appState.maxVisibleVertex).length;
+
+            document.getElementById('vertexCount').textContent = visibleVertices;
+            document.getElementById('edgeCount').textContent = graph.edges.size;
+            document.getElementById('peripheryCount').textContent = graph.periphery.length;
+
+            // Update capacity progress
+            const capacity = (graph.vertices.size / graph.maxVertices) * 100;
+            document.getElementById('capacityProgress').style.width = `${capacity}%`;
+            document.getElementById('capacityText').textContent = `${graph.vertices.size}/${graph.maxVertices}`;
+        }
+
+        function updateStatus(message) {
+            const statusBar = document.getElementById('statusBar');
+            const timestamp = new Date().toLocaleTimeString();
+            statusBar.textContent = `${message} (${timestamp})`;
+        }
+
+        // Notification System
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+
+            // Set color based on type
+            switch (type) {
+                case 'success':
+                    notification.style.background = 'linear-gradient(135deg, rgba(76, 175, 80, 0.9), rgba(129, 199, 132, 0.9))';
+                    break;
+                case 'warning':
+                    notification.style.background = 'linear-gradient(135deg, rgba(255, 152, 0, 0.9), rgba(255, 183, 77, 0.9))';
+                    break;
+                case 'error':
+                    notification.style.background = 'linear-gradient(135deg, rgba(244, 67, 54, 0.9), rgba(229, 115, 115, 0.9))';
+                    break;
+                default:
+                    notification.style.background = 'linear-gradient(135deg, rgba(100, 255, 218, 0.9), rgba(29, 233, 182, 0.9))';
+            }
+
+            notification.classList.add('show');
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Tooltip System
+        let tooltipElement = null;
+
+        function showTooltip(x, y, text) {
+            hideTooltip();
+
+            tooltipElement = document.createElement('div');
+            tooltipElement.className = 'tooltip';
+            tooltipElement.textContent = text;
+            tooltipElement.style.left = `${x + 10}px`;
+            tooltipElement.style.top = `${y - 30}px`;
+
+            document.body.appendChild(tooltipElement);
+        }
+
+        function hideTooltip() {
+            if (tooltipElement) {
+                document.body.removeChild(tooltipElement);
+                tooltipElement = null;
+            }
+        }
+
+        // Rendering Engine
+        function render() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (graph.vertices.size === 0) return;
+
+            ctx.save();
+            ctx.translate(viewState.offsetX, viewState.offsetY);
+            ctx.scale(viewState.zoom, viewState.zoom);
+
+            // Enhanced color palette with gradients
+            const colors = [
+                '#ff6b6b', // Red
+                '#4ecdc4', // Teal  
+                '#45b7d1', // Blue
+                '#f9ca24'  // Yellow
+            ];
+
+            // Render edges first
+            renderEdges(colors);
+
+            // Render vertices on top
+            renderVertices(colors);
+
+            // Render selection highlights
+            renderSelectionHighlights();
+
+            ctx.restore();
+        }
+
+        function renderEdges(colors) {
+            ctx.lineWidth = 2 / viewState.zoom;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineCap = 'round';
+
+            for (const edgeStr of graph.edges) {
+                const [v1Id, v2Id] = edgeStr.split('-').map(Number);
+                const v1 = graph.vertices.get(v1Id);
+                const v2 = graph.vertices.get(v2Id);
+
+                if (!v1 || !v2 || !v1.visible || !v2.visible) continue;
+                if (v1.id > appState.maxVisibleVertex || v2.id > appState.maxVisibleVertex) continue;
+
+                // Enhanced edge styling
+                const gradient = ctx.createLinearGradient(v1.x, v1.y, v2.x, v2.y);
+                gradient.addColorStop(0, colors[v1.color - 1] + '60');
+                gradient.addColorStop(1, colors[v2.color - 1] + '60');
+                ctx.strokeStyle = gradient;
+
+                if (appState.edgeStyle === 'curved') {
+                    renderCurvedEdge(v1, v2);
+                } else {
+                    renderStraightEdge(v1, v2);
+                }
+            }
+        }
+
+        function renderStraightEdge(v1, v2) {
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y);
+            ctx.lineTo(v2.x, v2.y);
+            ctx.stroke();
+        }
+
+        function renderCurvedEdge(v1, v2) {
+            const dx = v2.x - v1.x;
+            const dy = v2.y - v1.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+
+            if (length < 20) {
+                renderStraightEdge(v1, v2);
+                return;
+            }
+
+            // Calculate control point for smooth curve
+            const midX = (v1.x + v2.x) / 2;
+            const midY = (v1.y + v2.y) / 2;
+
+            const curvature = 0.15;
+            const offsetX = -dy / length * curvature * length;
+            const offsetY = dx / length * curvature * length;
+
+            const controlX = midX + offsetX;
+            const controlY = midY + offsetY;
+
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y);
+            ctx.quadraticCurveTo(controlX, controlY, v2.x, v2.y);
+            ctx.stroke();
+        }
+
+        function renderVertices(colors) {
+            for (const vertex of graph.vertices.values()) {
+                if (!vertex.visible || vertex.id > appState.maxVisibleVertex) continue;
+
+                const color = colors[vertex.color - 1];
+
+                // Outer glow for periphery vertices
+                if (vertex.onPeriphery) {
+                    const glowGradient = ctx.createRadialGradient(vertex.x, vertex.y, 0, vertex.x, vertex.y, vertex.size + 8);
+                    glowGradient.addColorStop(0, color + '80');
+                    glowGradient.addColorStop(1, color + '00');
+
+                    ctx.fillStyle = glowGradient;
+                    ctx.beginPath();
+                    ctx.arc(vertex.x, vertex.y, vertex.size + 8, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                // Outer ring
+                ctx.beginPath();
+                ctx.arc(vertex.x, vertex.y, vertex.size + 2, 0, 2 * Math.PI);
+                ctx.fillStyle = vertex.onPeriphery ? '#ffffff' : 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+
+                // Main vertex circle with gradient
+                const gradient = ctx.createRadialGradient(
+                    vertex.x - vertex.size * 0.3, vertex.y - vertex.size * 0.3, 0,
+                    vertex.x, vertex.y, vertex.size
+                );
+                gradient.addColorStop(0, color + 'ff');
+                gradient.addColorStop(1, color + 'cc');
+
+                ctx.beginPath();
+                ctx.arc(vertex.x, vertex.y, vertex.size, 0, 2 * Math.PI);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                // Inner highlight
+                ctx.beginPath();
+                ctx.arc(vertex.x - vertex.size * 0.3, vertex.y - vertex.size * 0.3, vertex.size * 0.3, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.fill();
+
+                // Vertex label
+                ctx.fillStyle = '#000000';
+                ctx.font = `bold ${Math.max(8, vertex.size * 0.6)}px Inter, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const text = appState.showIndices ? vertex.id.toString() : vertex.color.toString();
+                ctx.fillText(text, vertex.x, vertex.y);
+            }
+        }
+
+        function renderSelectionHighlights() {
+            // Highlight selected vertices
+            if (appState.vpVertex) {
+                renderVertexHighlight(appState.vpVertex, '#00ff00', 'Vp');
+            }
+
+            if (appState.vqVertex) {
+                renderVertexHighlight(appState.vqVertex, '#ff0000', 'Vq');
+            }
+        }
+
+        function renderVertexHighlight(vertex, color, label) {
+            if (!vertex.visible || vertex.id > appState.maxVisibleVertex) return;
+
+            // Animated highlight ring
+            const time = Date.now() * 0.005;
+            const radius = vertex.size + 6 + Math.sin(time) * 2;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(vertex.x, vertex.y, radius, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Label
+            ctx.fillStyle = color;
+            ctx.font = 'bold 12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, vertex.x, vertex.y - vertex.size - 15);
+        }
+
+        // Initialize application when page loads
+        window.addEventListener('load', init);
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (appState.animationId) {
+                cancelAnimationFrame(appState.animationId);
+            }
+        });
+    </script>
+</body>
+
+</html>

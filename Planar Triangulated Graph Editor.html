@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<!-- saved from url=(0043)https://planar-graph-simulator.netlify.app/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planar Triangulated Graph Editor</title>
+    <link rel="stylesheet" href="./Planar Triangulated Graph Editor_files/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="control-group">
+                <h3>Graph Controls</h3>
+                <button onclick="startBasicGraph()">Start Triangle</button>
+                <button onclick="addRandomVertex()">Add Random Vertex</button>
+                <button onclick="enterAddVertexMode()">Add Vertex (Manual)</button>
+                <button onclick="centerAndResize()">Center &amp; Resize</button>
+                <button onclick="toggleDisplay()">Toggle Color/Index</button>
+                <button id="startAutoAdd" onclick="startAutoAdd()">Start Auto Add</button>
+                <button id="stopAutoAdd" onclick="stopAutoAdd()" disabled="">Stop Auto Add</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>Navigation</h3>
+                <input type="number" id="goToVertex" placeholder="Vertex number" min="1">
+                <button onclick="goToVertex()">Go to Vertex</button>
+                <button onclick="zoomIn()">Zoom In</button>
+                <button onclick="zoomOut()">Zoom Out</button>
+            </div>
+            
+            <div class="control-group">
+                <h3>Colors</h3>
+                <div class="color-palette">
+                    <div class="color-box selected" style="background: #FF6B6B" onclick="selectColor(1)" data-color="1"></div>
+                    <div class="color-box" style="background: #4ECDC4" onclick="selectColor(2)" data-color="2"></div>
+                    <div class="color-box" style="background: #45B7D1" onclick="selectColor(3)" data-color="3"></div>
+                    <div class="color-box" style="background: #96CEB4" onclick="selectColor(4)" data-color="4"></div>
+                </div>
+            </div>
+            
+            <div class="mode-indicator" id="modeIndicator">Ready</div>
+            
+            <div class="control-group">
+                <h3>Statistics</h3>
+                <div id="stats">
+            Vertices: 8<br>
+            Edges: 15<br>
+            Periphery: 6
+        <hr><b>Debug State:</b><br><pre style="font-size:11px;white-space:pre-wrap;">{
+  "zoom": 1,
+  "offsetX": 0,
+  "offsetY": 0,
+  "isDragging": false,
+  "lastMouseX": 0,
+  "lastMouseY": 0,
+  "maxVisibleVertex": null,
+  "isForceDirected": true,
+  "simulationSteps": 301,
+  "simulationMaxSteps": 1000,
+  "simulationRunning": true,
+  "simulationInterval": true,
+  "periphery": [
+    4,
+    7,
+    6,
+    1,
+    5,
+    8
+  ],
+  "selectedColor": 1,
+  "displayShowIndex": false,
+  "colors": {
+    "1": "#FF6B6B",
+    "2": "#4ECDC4",
+    "3": "#45B7D1",
+    "4": "#96CEB4"
+  },
+  "verticesCount": 8,
+  "edgesCount": 15,
+  "edges": [
+    {
+      "v1": 1,
+      "v2": 2
+    },
+    {
+      "v1": 2,
+      "v2": 3
+    },
+    {
+      "v1": 3,
+      "v2": 1
+    },
+    {
+      "v1": 4,
+      "v2": 1
+    },
+    {
+      "v1": 4,
+      "v2": 3
+    },
+    {
+      "v1": 5,
+      "v2": 2
+    },
+    {
+      "v1": 5,
+      "v2": 1
+    },
+    {
+      "v1": 6,
+      "v2": 4
+    },
+    {
+      "v1": 6,
+      "v2": 1
+    },
+    {
+      "v1": 7,
+      "v2": 4
+    },
+    {
+      "v1": 7,
+      "v2": 6
+    },
+    {
+      "v1": 8,
+      "v2": 4
+    },
+    {
+      "v1": 8,
+      "v2": 3
+    },
+    {
+      "v1": 8,
+      "v2": 2
+    },
+    {
+      "v1": 8,
+      "v2": 5
+    }
+  ]
+}</pre></div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="canvas" width="1278" height="786"></canvas>
+            <div class="status" id="status">Random vertex added outside periphery</div>
+        </div>
+    </div>
+    <script src="./Planar Triangulated Graph Editor_files/main.js.download"></script>
+
+</body></html>
