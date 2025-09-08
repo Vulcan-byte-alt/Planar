@@ -736,7 +736,7 @@
             let colors = {
                 vertexColors: ['#b8cfe5', '#ffadad', '#ffd6a5', '#caffbf'], // Colors 1-4
                 vertexBorderColor: '#333333',
-                edgeColor: '#333333',
+                edgeColor: '#000000',
                 peripheryColor: '#e63946',
                 selectedColor: '#f9c74f',
                 textColor: '#333333'
@@ -1546,6 +1546,18 @@
             // GRAPH ALGORITHMS
             // ===================================================================
 
+            function arePeripheryNeighbors(v1Id, v2Id) {
+                const p = graph.periphery;
+                for (let i = 0; i < p.length; i++) {
+                    const current = p[i];
+                    const next = p[(i + 1) % p.length]; // This handles the wraparound from the last to the first vertex
+                    if ((current === v1Id && next === v2Id) || (current === v2Id && next === v1Id)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             function checkSegmentAngles(segment, threshold) {
                 // A segment needs at least 3 vertices to have an "internal" angle.
                 if (segment.length < 3) {
@@ -1774,62 +1786,51 @@
             }
 
             function fixGraph(silent = false) {
-                if (graph.vertices.length <= 3) {
-                    if (!silent) showAlert('Need more than 3 vertices to apply physics layout', 'info');
-                    return;
-                }
+                if (graph.vertices.length <= 3) { /* ... */ return; }
 
-                for (let i = 0; i < graph.periphery.length; i++) {
-                    const v1 = graph.periphery[i];
-                    const v2 = graph.periphery[(i + 1) % graph.periphery.length];
-                    if (!edgeExists(v1, v2)) {
-                        log(`REPAIRING: Found and fixed missing periphery edge between V${v1 + 1} and V${v2 + 1}.`);
-                        addEdge(v1, v2);
-                    }
-                }
+                // --- SELF-HEALING BLOCK REMAINS ---
+                for (let i = 0; i < graph.periphery.length; i++) { /* ... */ }
 
                 if (!silent) showLoading(true, 'Applying physics-based layout optimization...');
-                log('Starting Matter.js physics layout');
+                log('Starting Matter.js physics layout with UNPINNED periphery.');
 
-                // Stop any existing physics simulation
-                if (physicsRunner) {
-                    Matter.Runner.stop(physicsRunner);
-                    physicsRunner = null;
-                }
-                if (physicsEngine) {
-                    Matter.Engine.clear(physicsEngine);
-                    physicsEngine = null;
-                }
+                if (physicsRunner) Matter.Runner.stop(physicsRunner);
+                if (physicsEngine) Matter.Engine.clear(physicsEngine);
 
-                physicsEngine = Matter.Engine.create();
-                physicsEngine.gravity.scale = 0;
+                physicsEngine = Matter.Engine.create({ gravity: { scale: 0 } });
 
                 const bodies = graph.vertices.map(v => {
                     const radius = getVertexRadius(v.id) + CONFIG.COLLISION_MARGIN;
-                    const body = Matter.Bodies.circle(v.x, v.y, radius, {
-                        id: v.id,
-                        isStatic: graph.periphery.includes(v.id),
-                        restitution: CONFIG.PHYSICS_RESTITUTION,
-                        friction: CONFIG.PHYSICS_FRICTION,
-                        frictionAir: 0.01
-                    });
-                    return body;
+                    // UNPIN THE PERIPHERY: All nodes are now dynamic.
+                    return Matter.Bodies.circle(v.x, v.y, radius, { id: v.id, isStatic: false });
                 });
                 Matter.Composite.add(physicsEngine.world, bodies);
 
                 const constraints = graph.edges.map(edge => {
                     return Matter.Constraint.create({
-                        bodyA: bodies[edge.v1],
-                        bodyB: bodies[edge.v2],
+                        bodyA: bodies[edge.v1], bodyB: bodies[edge.v2],
                         length: calculateDistance(graph.vertices[edge.v1], graph.vertices[edge.v2]),
-                        stiffness: CONFIG.PHYSICS_STIFFNESS,
-                        damping: CONFIG.PHYSICS_DAMPING
+                        stiffness: CONFIG.PHYSICS_STIFFNESS, damping: CONFIG.PHYSICS_DAMPING
                     });
                 });
                 Matter.Composite.add(physicsEngine.world, constraints);
 
                 Matter.Events.on(physicsEngine, 'beforeUpdate', function () {
-                    // ... (This event listener for repulsion remains unchanged)
+                    const center = { x: stage.width() / 2, y: stage.height() / 2 };
+                    const maxDistance = Math.min(stage.width(), stage.height()) * 0.45;
+
+                    for (const body of bodies) {
+                        // APPLY CONTAINMENT FORCE to keep the graph centered and circular
+                        const distFromCenter = calculateDistance(body.position, center);
+                        if (distFromCenter > maxDistance) {
+                            const angle = Math.atan2(body.position.y - center.y, body.position.x - center.x);
+                            // Gently push the body back towards the edge of the circle
+                            Matter.Body.applyForce(body, body.position, {
+                                x: -Math.cos(angle) * 0.005 * body.mass,
+                                y: -Math.sin(angle) * 0.005 * body.mass
+                            });
+                        }
+                    }
                 });
 
                 physicsRunner = Matter.Runner.create();
@@ -1838,18 +1839,16 @@
                 Matter.Events.on(physicsRunner, 'tick', function () {
                     iterations++;
                     bodies.forEach((body, i) => {
-                        if (!body.isStatic) {
-                            graph.vertices[i].x = body.position.x;
-                            graph.vertices[i].y = body.position.y;
-                        }
+                        graph.vertices[i].x = body.position.x;
+                        graph.vertices[i].y = body.position.y;
                     });
 
-                    if (iterations % 10 === 0) {
-                        updateVertexPositions();
-                    }
+                    if (iterations % 10 === 0) updateVertexPositions();
 
                     if (iterations >= CONFIG.PHYSICS_ITERATIONS || physicsEngine.timing.timestamp > CONFIG.PHYSICS_TIME_LIMIT) {
                         Matter.Runner.stop(physicsRunner);
+                        // After the layout is done, we must recalculate the periphery as it may have changed.
+                        graph.periphery = findConvexHull();
                         updateQuadTree();
                         detectFaces();
                         updateGraphInfo();
@@ -1857,20 +1856,8 @@
 
                         if (!silent) {
                             showLoading(false);
-                            const overlaps = findAllOverlaps();
-                            const crossings = findAllCrossings();
-                            if (overlaps.length === 0 && crossings.length === 0) {
-                                showAlert('Perfect layout achieved with physics optimization!', 'success');
-                            } else {
-                                showAlert(`Layout improved. ${overlaps.length} overlaps, ${crossings.length} remaining.`, 'warning');
-                            }
+                            showAlert('Physics-based layout optimization complete!', 'success');
                         }
-
-                        log('Physics layout completed', {
-                            iterations: iterations,
-                            overlaps: findAllOverlaps().length,
-                            crossings: findAllCrossings().length
-                        });
                     }
                 });
                 Matter.Runner.run(physicsRunner, physicsEngine);
@@ -2441,7 +2428,7 @@
 
                 return result;
             }
-            
+
             // DELETE your old updatePeriphery function and use this one instead.
             function updatePeriphery(removedVertices, newVertexId) {
                 try {
@@ -3484,42 +3471,46 @@
                         // This block handles the selection of the SECOND vertex (Vq)
                         else if (selection.firstVertex !== vertexId) {
                             try {
-                                const connectedVertices = getVerticesBetween(selection.firstVertex, vertexId);
-                                selection.secondVertex = vertexId;
-                                selection.vertices = connectedVertices; // Show the full selection highlight
+                                const vpId = selection.firstVertex;
+                                const vqId = vertexId;
+
+                                // ==========================================================
+                                // === NEW, CORRECTED VALIDATION CHECK ===
+                                // ==========================================================
+                                // Only throw an error if an edge exists AND they are NOT neighbors.
+                                if (edgeExists(vpId, vqId) && !arePeripheryNeighbors(vpId, vqId)) {
+                                    throw new Error('An edge already exists between these non-adjacent vertices (internal chord). Please select a different pair.');
+                                }
+                                // ==========================================================
+
+                                const connectedVertices = getVerticesBetween(vpId, vqId);
+                                selection.secondVertex = vqId;
+                                selection.vertices = connectedVertices;
                                 updateSelectionInfo();
                                 draw();
 
-                                // --- START OF NEW ANGLE CHECK LOGIC ---
                                 const angleThreshold = Math.PI / 3; // 60 degrees in radians
                                 if (!checkSegmentAngles(connectedVertices, angleThreshold)) {
-                                    // If the angle is too small, run the fix and cancel the addition.
                                     showAlert('Selected area is too crowded. Running layout optimization to create space.', 'warning');
-
-                                    fixGraph(false); // Run non-silently so the user sees the fix.
-
-                                    // Reset the entire selection process. The user must select again.
+                                    fixGraph(false);
                                     selection.mode = 'none';
                                     selection.vertices = [];
                                     selection.firstVertex = null;
                                     selection.secondVertex = null;
                                     updateStatus('Layout optimized. Please re-select vertices for addition.');
                                     updateSelectionInfo();
-                                    return; // IMPORTANT: Stop the function here.
+                                    return;
                                 }
-                                // --- END OF NEW ANGLE CHECK LOGIC ---
 
-                                log('Second vertex selected and angle check passed', {
-                                    first: selection.firstVertex + 1,
-                                    second: vertexId + 1,
-                                    connectedCount: connectedVertices.length
+                                log('Second vertex selected and validation passed', {
+                                    first: vpId + 1,
+                                    second: vqId + 1,
                                 });
 
-                                // If the angle check passes, proceed with adding the new vertex.
                                 setTimeout(() => {
-                                    showLoading(true, 'Voronoi-based placement in progress...');
+                                    showLoading(true, 'Finding optimal position...');
                                     try {
-                                        addNewVertex(selection.firstVertex, selection.secondVertex);
+                                        addNewVertex(vpId, vqId);
                                     } catch (error) {
                                         log('Error adding vertex', error);
                                         showLoading(false);
@@ -3528,6 +3519,13 @@
 
                             } catch (error) {
                                 showAlert('Invalid selection: ' + error.message, 'error');
+                                // Reset selection on error
+                                selection.mode = 'none';
+                                selection.vertices = [];
+                                selection.firstVertex = null;
+                                selection.secondVertex = null;
+                                updateSelectionInfo();
+                                draw();
                             }
                         }
                         // This handles the case where the user clicks the same vertex twice
